@@ -1297,3 +1297,17 @@
   border-radius: 999px;
   opacity: 0.9;
 }
+
+html, body {
+  height: 100%;
+}
+
+.fp-app, #map, .fp-map {
+  height: 100dvh;      /* modern “real” viewport */
+  height: 100svh;      /* fallback for some iOS versions */
+  min-height: 100vh;   /* last resort fallback */
+}
+
+.fp-map {
+  height: calc(100dvh - var(--header-h, 0px));
+}
