@@ -1,0 +1,1276 @@
+/* FuelPilot — scoped styles */
+.fp-app {
+  height: 100vh;
+  height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+  background: #0b0c0f;
+  color: #e9eef5;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+    "Segoe UI Emoji";
+}
+
+.fp-site-header {
+  position: relative;
+  z-index: 30;
+}
+
+/* Map */
+.fp-map-wrap {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.fp-map {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+/* UI Stack: controls + floating CTA (reliable positioning, no JS measuring) */
+.fp-ui-stack {
+  position: absolute;
+  z-index: 22;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: 12px;
+  right: 12px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  pointer-events: none; /* only children opt-in */
+}
+
+/* Floating controls (glass card) */
+.fp-controls {
+  pointer-events: auto;
+
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(20,20,20,0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  transition: border-color 140ms ease-out, box-shadow 140ms ease-out;
+}
+
+.fp-controls__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+
+
+.fp-title__sub {
+  font-size: 13px;   /* slightly larger but more refined */
+  opacity: 0.7;      /* clearly secondary */
+  margin-top: 0;
+}
+
+.fp-controls__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.fp-controls__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fp-field__label {
+  display: block;
+  font-size: 11px;
+  opacity: 0.75;
+  margin-bottom: 6px;
+}
+
+.fp-select {
+  width: 100%;
+  padding: 10px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.25);
+  color: inherit;
+  outline: none;
+}
+
+.fp-select:focus {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.fp-btn:hover {
+  background: rgba(0, 0, 0, 0.34);
+}
+
+.fp-btn:active {
+  transform: scale(0.98);
+}
+
+.fp-chip {
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.22);
+  color: inherit;
+  cursor: pointer;
+  font-size: 12px;
+  transition: transform 140ms ease-out, opacity 140ms ease-out, background 140ms ease-out;
+}
+
+.fp-chip:active {
+  transform: scale(0.98);
+}
+
+.fp-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.22);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 140ms ease-out, background 140ms ease-out;
+}
+
+.fp-icon-btn:active {
+  transform: scale(0.98);
+}
+
+/* Search-this-area FAB (stacked under controls, not guessed) */
+/* Search-this-area FAB (animated in/out) */
+.fp-fab{
+  align-self: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 12, 16, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: inherit;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+
+  /* hidden state */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px) scale(0.98);
+  transition:
+    opacity 180ms ease-out,
+    transform 220ms cubic-bezier(.2,.9,.2,1);
+  will-change: opacity, transform;
+}
+
+.fp-fab.is-visible{
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+/* Desktop: pin it top-centre of the MAP (traditional placement) */
+@media (min-width: 900px){
+  .fp-fab{
+    position: fixed;
+    top: 18px;
+    left: 50%;
+    z-index: 999;
+    align-self: auto;
+
+    transform: translate(-50%, -6px) scale(0.98);
+  }
+
+  .fp-fab.is-visible{
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+/* Respect reduced-motion */
+@media (prefers-reduced-motion: reduce){
+  .fp-fab{
+    transition: none;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Drawer (mobile bottom sheet) */
+.fp-drawer {
+  position: absolute;
+  z-index: 25;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 55vh;
+  max-height: 520px;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+  background: rgba(16, 18, 24, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.5);
+  transform: translateY(calc(100% - 64px));
+  transition: transform 180ms ease-out;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+  overflow: hidden;
+}
+
+.fp-drawer.is-open {
+  transform: translateY(0);
+}
+
+.fp-drawer__handle {
+  width: 44px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  margin: 10px auto 8px auto;
+}
+
+.fp-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 12px 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.fp-drawer__title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.fp-drawer__meta {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+.fp-selected {
+  margin: 10px 0;
+  padding: 0 12px;
+  border: 0;
+  background: transparent
+}
+
+.fp-card__price {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 6px;
+}
+
+.fp-card__name {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.fp-card__addr {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-bottom: 10px;
+}
+
+.fp-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.fp-badge {
+  font-size: 11px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  opacity: 0.9;
+}
+
+.fp-card__cta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.fp-card__trust {
+  font-size: 11px;
+  opacity: 0.65;
+  margin-top: 8px;
+}
+
+/* List */
+.fp-list {
+  padding: 10px 12px 72px 12px; /* space for brand pill */
+  overflow: auto;
+  height: calc(100% - 120px);
+}
+
+/* List row accent bar (ties to marker colour) */
+/* List row (with premium accent rail) */
+.fp-row {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  /* IMPORTANT: left padding includes room for the rail */
+  padding: 10px 10px 10px 22px;
+
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.16);
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: transform 140ms ease-out, background 140ms ease-out;
+
+}
+
+  /* Apply the SAME accent rail to the selected card */
+#fpSelectedCard > * {
+  position: relative;
+  padding-left: 22px; /* same as .fp-row */
+}
+
+#fpSelectedCard > *::before {
+  content: "";
+  position: absolute;
+
+  left: 10px;
+  top: 12px;
+  bottom: 12px;
+
+  width: 4px;
+  border-radius: 999px;
+
+  background: rgba(255,255,255,0.18);
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.14),
+    0 6px 14px rgba(0,0,0,0.18);
+}
+
+/* Reuse the SAME quintile classes */
+#fpSelectedCard > *.fp-q0::before { background: rgba(0, 160, 95, 0.85); }
+#fpSelectedCard > *.fp-q1::before { background: rgba(60, 170, 110, 0.85); }
+#fpSelectedCard > *.fp-q2::before { background: rgba(200, 170, 40, 0.85); }
+#fpSelectedCard > *.fp-q3::before { background: rgba(220, 120, 40, 0.85); }
+#fpSelectedCard > *.fp-q4::before { background: rgba(200, 60, 60, 0.85); }
+#fpSelectedCard > *.fp-missing::before { background: rgba(180, 190, 205, 0.7); }
+
+
+/* Premium accent rail */
+.fp-row::before {
+  content: "";
+  position: absolute;
+
+  left: 10px;
+  top: 12px;
+  bottom: 12px;
+
+  width: 4px;
+  border-radius: 999px;
+
+  background: rgba(255,255,255,0.18); /* fallback */
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.14),
+    0 6px 14px rgba(0,0,0,0.18);
+}
+
+/* Tie accent rail to quintiles */
+.fp-row.fp-q0::before { background: rgba(0, 160, 95, 0.85); }
+.fp-row.fp-q1::before { background: rgba(60, 170, 110, 0.85); }
+.fp-row.fp-q2::before { background: rgba(200, 170, 40, 0.85); }
+.fp-row.fp-q3::before { background: rgba(220, 120, 40, 0.85); }
+.fp-row.fp-q4::before { background: rgba(200, 60, 60, 0.85); }
+.fp-row.fp-missing::before { background: rgba(180, 190, 205, 0.7); }
+
+.fp-row:hover {
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.fp-row:active {
+  transform: scale(0.99);
+}
+
+.fp-row:hover {
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.fp-row:active {
+  transform: scale(0.99);
+}
+
+.fp-row__left {
+  min-width: 0;
+}
+
+.fp-row__price {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.fp-row__meta {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 62vw;
+}
+
+.fp-row__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fp-mini {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.fp-link-btn {
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.10);
+  color: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Brand pill */
+.fp-brand-pill {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+  z-index: 26;
+  padding: 10px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+/* Bottom pill: make the FuelPilot wordmark match the header style (but smaller) */
+/* Wordmark sizing for bottom pill */
+.fp-powered__brand {
+  font-size: 12px;
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: baseline;
+}
+
+/* Ensure weight contrast */
+
+
+/* Secondary text */
+.fp-powered__by {
+  opacity: 0.75;
+}
+
+/* Dot */
+.fp-brand-dot {
+  opacity: 0.6;
+}
+
+/* Hide the bottom brand pill on mobile to save space */
+@media (max-width: 520px) {
+  .fp-brand-pill {
+    display: none !important;
+  }
+}
+
+/* Leaflet marker "price flag" — premium tag */
+.fp-flag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  transform: translate(-50%, -50%);
+  transition: transform 140ms ease-out, box-shadow 140ms ease-out;
+  will-change: transform;
+
+  padding: 7px 10px 8px 10px;
+  border-radius: 12px;
+  border-width: 2px;
+
+  background: rgba(245, 247, 252, 0.92);
+  color: rgba(10, 12, 16, 0.92);
+
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-size: 13px;
+  line-height: 1;
+
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.40),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+
+  transform: translate(-50%, -50%);
+  transition: transform 140ms ease-out;
+  will-change: transform;
+}
+
+/* subtle “pointer” */
+.fp-flag::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg);
+  background: rgba(245, 247, 252, 0.92);
+  border-right: 1px solid rgba(255, 255, 255, 0.35);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+/* active */
+.fp-flag.is-active {
+  transform: translate(-50%, -50%) scale(1.12);
+}
+
+/* Quintile background tint (subtle) */
+.fp-q0 { background: rgba(220, 255, 235, 0.95); border-color: rgba(0, 160, 95, 0.60) }
+.fp-q1 { background: rgba(235, 255, 240, 0.95); border-color: rgba(60, 170, 110, 0.60) }
+.fp-q2 { background: rgba(255, 250, 220, 0.95); border-color: rgba(200, 170, 40, 0.60) }
+.fp-q3 { background: rgba(255, 235, 220, 0.95); border-color: rgba(220, 120, 40, 0.60) }
+.fp-q4 { background: rgba(255, 225, 225, 0.95); border-color: rgba(200, 60, 60, 0.60) }
+
+/* NEW: shared marker selection highlight (works for flags + missing dots) */
+.fp-marker.is-active {
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.45),
+    0 0 0 2px rgba(255, 255, 255, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+
+/* NEW: Missing-price marker (neutral, quieter than priced flags) */
+.fp-miss {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+
+  background: rgba(16, 18, 24, 0.75);
+  border: 2px solid rgba(245, 247, 252, 0.50);
+
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.40);
+
+  transform: translate(-50%, -50%);
+  transition: transform 140ms ease-out, box-shadow 140ms ease-out;
+  will-change: transform;
+}
+
+/* subtle pointer for missing marker */
+.fp-miss::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 8px;
+  height: 8px;
+  transform: translateX(-50%) rotate(45deg);
+  background: rgba(16, 18, 24, 0.75);
+  border-right: 1px solid rgba(245, 247, 252, 0.35);
+  border-bottom: 1px solid rgba(245, 247, 252, 0.35);
+}
+
+/* Modal */
+.fp-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+}
+
+.fp-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.fp-modal__panel {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 18vh;
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(16, 18, 24, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+}
+
+.fp-modal__title {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.fp-modal__text {
+  font-size: 13px;
+  opacity: 0.9;
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+
+/* Desktop: side panel instead of bottom sheet */
+@media (min-width: 920px) {
+  .fp-ui-stack {
+    left: 16px;
+    right: auto;
+    width: 380px;
+  }
+
+  .fp-drawer {
+    top: 12px;
+    bottom: 12px;
+    right: 12px;
+    left: auto;
+    width: 420px;
+    height: auto;
+    max-height: none;
+    border-radius: 18px;
+    transform: translateY(0);
+  }
+
+  .fp-drawer__handle {
+    display: none;
+  }
+
+  .fp-list .fp-row__meta {
+    max-width: 250px;
+  }
+}
+
+/* Legend popover */
+.fp-legend {
+  position: absolute;
+  z-index: 40;
+  top: calc(env(safe-area-inset-top, 0px) + 58px);
+  left: 12px;
+  right: auto;
+  pointer-events: none;
+}
+
+@media (min-width: 920px) {
+  .fp-legend {
+    top: calc(env(safe-area-inset-top, 0px) + 68px);
+    left: 16px;
+  }
+}
+
+.fp-legend__panel {
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  pointer-events: auto;
+  position: relative;
+
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(16, 18, 24, 0.86);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+}
+
+.fp-legend__title {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 2px;
+}
+
+.fp-legend__sub {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-bottom: 10px;
+}
+
+.fp-legend__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+/* Anchor legend to the controls card corner */
+.fp-legend {
+  top: calc(env(safe-area-inset-top, 0px) + 62px);
+  left: 12px;
+  right: auto;
+}
+
+@media (min-width: 920px) {
+  .fp-legend {
+    top: calc(env(safe-area-inset-top, 0px) + 70px);
+    left: 16px;
+  }
+}
+
+.fp-legend__panel::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 26px;
+  width: 12px;
+  height: 12px;
+  transform: rotate(45deg);
+  background: rgba(16, 18, 24, 0.86);
+  border-left: 1px solid rgba(255, 255, 255, 0.10);
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.fp-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+  border: 1px solid rgba(255,255,255,0.35);
+}
+
+/* Make the dots use your quintile colours */
+.fp-dot.fp-q0 { background: rgba(0, 200, 120, 0.9); }
+.fp-dot.fp-q1 { background: rgba(90, 210, 140, 0.9); }
+.fp-dot.fp-q2 { background: rgba(240, 200, 60, 0.9); }
+.fp-dot.fp-q3 { background: rgba(255, 150, 60, 0.9); }
+.fp-dot.fp-q4 { background: rgba(255, 80, 80, 0.9); }
+
+/* Prevent marker quintile classes tinting the LIST rows */
+.fp-row.fp-q0,
+.fp-row.fp-q1,
+.fp-row.fp-q2,
+.fp-row.fp-q3,
+.fp-row.fp-q4 {
+  background: rgba(0, 0, 0, 0.16); /* same as your normal fp-row */
+  border-color: rgba(255, 255, 255, 0.08);
+  color: inherit;
+}
+
+/* Desktop: tuck it neatly under the controls */
+@media (min-width: 920px) {
+  .fp-legend {
+    left: 16px;
+    right: auto;
+    top: calc(env(safe-area-inset-top, 0px) + 82px);
+  }
+}
+
+.fp-legend__panel {
+  transform-origin: top left;
+  animation: fpPop 140ms ease-out;
+}
+
+@keyframes fpPop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Missing-price marker (neutral, premium, clickable) */
+/* Missing-price marker (neutral, premium, quieter than priced flags) */
+.fp-miss {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+
+  background: rgba(16, 18, 24, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.10);
+
+  transform: translate(-50%, -50%);
+}
+
+.fp-miss::after {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+/* Missing price flag — refined neutral */
+.fp-flag--missing {
+  background: linear-gradient(
+    180deg,
+    rgba(145, 152, 166, 0.95),
+    rgba(115, 122, 136, 0.95)
+  );
+
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.95);
+
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.10);
+}
+
+/* Smaller dash so it feels lighter */
+.fp-flag--missing {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* Optional: slightly smaller, but keep centering */
+.fp-flag--missing {
+  transform: translate(-50%, -50%) scale(0.96);
+}
+
+/* Slightly softer pointer */
+.fp-flag--missing::after {
+  opacity: 0.8;
+}
+
+/* Desktop hover response (flags incl missing) */
+@media (hover: hover) and (pointer: fine) {
+  .fp-flag:hover {
+    transform: translate(-50%, -50%) scale(1.08);
+    box-shadow:
+      0 16px 34px rgba(0, 0, 0, 0.38),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+  }
+}
+
+.fp-miss.is-active {
+  transform: translate(-50%, -50%) scale(1.12);
+}
+
+/* FuelPilot wordmark */
+
+
+/* Status line (diagnostic, not tagline) */
+.fp-title__sub {
+  font-size: 14px;
+  opacity: 0.72;                /* secondary hierarchy */
+}
+
+/* Selected card uses the SAME premium accent rail as list rows */
+.fp-selected .fp-sel {
+  position: relative;
+  padding: 12px 12px 12px 22px; /* same idea as .fp-row (room for rail) */
+}
+
+/* Same rail geometry + shadow as .fp-row::before */
+.fp-selected .fp-sel::before {
+  content: "";
+  position: absolute;
+
+  left: 10px;
+  top: 12px;
+  bottom: 12px;
+
+  width: 4px;
+  border-radius: 999px;
+
+  background: rgba(255,255,255,0.18); /* fallback */
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.14),
+    0 6px 14px rgba(0,0,0,0.18);
+}
+
+/* Tie selected rail to the SAME quintile classes */
+.fp-selected .fp-sel.fp-q0::before { background: rgba(0, 160, 95, 0.85); }
+.fp-selected .fp-sel.fp-q1::before { background: rgba(60, 170, 110, 0.85); }
+.fp-selected .fp-sel.fp-q2::before { background: rgba(200, 170, 40, 0.85); }
+.fp-selected .fp-sel.fp-q3::before { background: rgba(220, 120, 40, 0.85); }
+.fp-selected .fp-sel.fp-q4::before { background: rgba(200, 60, 60, 0.85); }
+.fp-selected .fp-sel.fp-missing::before { background: rgba(180, 190, 205, 0.7); }
+
+/* ===== Selected card: add the same premium accent rail as list rows ===== */
+
+.fp-selected .fp-card.fp-sel {
+  padding: 10px 12px 10px 20px; /* was 12/12/12/22 */
+}
+
+.fp-selected .fp-card.fp-sel::before {
+  left: 9px;     /* slightly tighter */
+  top: 10px;
+  bottom: 10px;
+}
+
+/* same quintile colours */
+.fp-selected .fp-card.fp-sel.fp-q0::before { background: rgba(0, 160, 95, 0.85); }
+.fp-selected .fp-card.fp-sel.fp-q1::before { background: rgba(60, 170, 110, 0.85); }
+.fp-selected .fp-card.fp-sel.fp-q2::before { background: rgba(200, 170, 40, 0.85); }
+.fp-selected .fp-card.fp-sel.fp-q3::before { background: rgba(220, 120, 40, 0.85); }
+.fp-selected .fp-card.fp-sel.fp-q4::before { background: rgba(200, 60, 60, 0.85); }
+.fp-selected .fp-card.fp-sel.fp-missing::before { background: rgba(180, 190, 205, 0.7); }
+
+/* Prevent quintile classes tinting the selected card background */
+.fp-selected .fp-card.fp-sel.fp-q0,
+.fp-selected .fp-card.fp-sel.fp-q1,
+.fp-selected .fp-card.fp-sel.fp-q2,
+.fp-selected .fp-card.fp-sel.fp-q3,
+.fp-selected .fp-card.fp-sel.fp-q4,
+.fp-selected .fp-card.fp-sel.fp-missing {
+  background: rgba(0, 0, 0, 0.20); /* same as original selected card */
+  border-color: rgba(255, 255, 255, 0.10);
+  color: inherit;
+}
+
+/* 2) Give the actual card the nice surface */
+.fp-selected .fp-card {
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.20);
+}
+
+/* Softer scrollbar (optional, but helps the “messy” feeling) */
+.fp-list::-webkit-scrollbar { width: 10px; }
+.fp-list::-webkit-scrollbar-track { background: transparent; }
+.fp-list::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.14);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+.fp-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.20); }
+
+.fp-controls button:active {
+  transform: translateY(0.5px);
+}
+
+.fp-controls button:hover {
+  border-color: rgba(255,255,255,0.18);
+}
+
+@media (max-width: 520px) {
+  .fp-controls__grid { gap: 10px; }
+}
+
+.fp-brand-fuel { font-weight: 500; }
+.fp-brand-pilot { font-weight: 600; }
+
+.fp-title__name {
+  font-family: Inter, system-ui, -apple-system, "SF Pro Text", Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+/* Title + subtitle polish */
+#fpStatus { margin-top: 4px; font-size: 13px; opacity: 0.7; }
+
+/* Subtle divider under the header area (if you have a wrapper row) */
+.fp-controls__top { padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+
+/* Unified control sizing */
+.fp-controls select,
+.fp-controls button {
+  height: 40px;
+  border-radius: 12px;
+}
+
+/* Select polish */
+.fp-controls select {
+  padding: 0 12px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.20);
+  color: rgba(255,255,255,0.92);
+}
+
+/* Default button (secondary) */
+.fp-controls button {
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.18);
+  color: rgba(255,255,255,0.88);
+}
+
+/* Primary action */
+.fp-controls button.fp-btn {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.22);
+  color: inherit;
+  cursor: pointer;
+
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+}
+
+.fp-btn--primary {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fp-btn:hover { border-color: rgba(255, 255, 255, 0.18); }
+  .fp-btn:active { transform: translateY(0.5px); }
+}
+
+
+/* Buttons — engineered, consistent sizing */
+/* Primary button (Refresh) */
+/* Micro-interactions (premium, subtle) */
+.fp-btn:hover {
+  border-color: rgba(255,255,255,0.18);
+}
+
+.fp-btn:active {
+  transform: translateY(0.5px);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fp-controls:hover {
+    border-color: rgba(255,255,255,0.18);
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.40);
+  }
+}
+
+/* Utility: hide things without deleting them */
+.fp-hide { display: none !important; }
+
+@media (max-width: 520px) {
+  .fp-hide-mobile { display: none !important; }
+}
+
+@media (max-width: 520px) {
+  .fp-controls {
+    width: calc(100% - 24px);
+    max-width: 420px;
+    padding: 10px;
+  }
+
+
+  /* If your grid feels tall, reduce the gap */
+  .fp-controls__grid { gap: 10px; }
+}
+
+@media (max-width: 520px) {
+  .fp-controls__grid { gap: 10px; }
+  .fp-controls select { height: 40px; border-radius: 12px; }
+  }
+
+
+/* ===========================
+   Mobile: compact top controls
+   =========================== */
+@media (max-width: 520px) {
+  /* Make the whole card feel like a banner */
+  .fp-controls {
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  /* Kill the 2-column dashboard layout */
+  .fp-controls__grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  /* Reduce label height cost (if you use .fp-field__label) */
+  .fp-field__label {
+    margin-bottom: 4px;
+    font-size: 10px;
+    opacity: 0.65;
+  }
+
+  /* Buttons/selects stay consistent */
+  .fp-select,
+  .fp-btn {
+    height: 40px;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 520px) {
+  /* Mobile: Fuel + My Location on one line */
+  .fp-controls__grid {
+    grid-template-columns: 1fr auto;
+    align-items: end;
+  }
+
+  .fp-controls__myloc-slot {
+    align-self: end;
+  }
+
+  .fp-controls__myloc-slot .fp-btn {
+    white-space: nowrap;
+    padding: 0 12px;
+  }
+
+  /* Make sure the Region column truly disappears */
+  .fp-controls__grid > .fp-hide-mobile {
+    display: none !important;
+  }
+}
+
+.fp-select {
+  font-weight: 600;
+}
+
+.fp-field {
+  margin-bottom: 0;
+}
+
+.fp-controls__icons{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.fp-controls__divider{
+  height:1px;
+  margin:10px 0 12px 0;
+  background: rgba(255,255,255,0.10);
+}
+
+.fp-controls__row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.fp-controls__row .fp-select{
+  flex:1 1 auto;
+  min-width:0;
+}
+
+#fpMyLocationBtn{
+  white-space:nowrap;
+}
+
+/* Force Fuel + My Location to stay on ONE row */
+.fp-controls__row{
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap !important;
+}
+
+/* Stop the select stealing the whole line */
+.fp-controls__row .fp-select{
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto !important;   /* overrides any width:100% */
+}
+
+/* Stop the button becoming full-width */
+#fpMyLocationBtn{
+  flex: 0 0 auto;
+  width: auto !important;   /* overrides any width:100% */
+  white-space: nowrap;
+}
+
+@media (max-width: 520px){
+  /* overall card padding */
+  .fp-controls{
+    padding: 10px !important;          /* was ~12+ */
+    border-radius: 16px;               /* keep */
+  }
+
+  /* reduce space between title/status and inputs */
+  .fp-controls__top{
+    margin-bottom: 8px !important;
+  }
+
+  /* reduce vertical spacing between rows */
+  .fp-controls__grid{
+    gap: 8px !important;               /* was bigger */
+  }
+}
+
+@media (max-width: 520px){
+  /* make the select + button a touch shorter */
+  #fpFuelSelect,
+  #fpMyLocationBtn{
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+}
+
+@media (max-width: 520px){
+  .fp-title__sub{
+    margin-top: 2px !important;
+  }
+
+  /* if you have a divider line */
+  .fp-controls hr,
+  .fp-divider{
+    margin: 8px 0 !important;
+    opacity: 0.18;
+  }
+}
+
+@media (max-width: 520px){
+  .fp-search-here{
+    padding: 10px 14px !important;
+    border-radius: 999px;
+  }
+}
+
+/* Desktop: Search-this-area button centered at top of viewport */
+@media (min-width: 900px) {
+  .fp-fab {
+    position: fixed;
+    top: 18px;
+    left: 50%;
+    z-index: 999; /* above map + panels */
+    align-self: auto; /* no longer relevant */
+
+    /* Replace the old transform animation with a centered transform */
+    transform: translate(-50%, -4px);
+  }
+
+  .fp-fab.is-visible {
+    transform: translate(-50%, 0);
+  }
+}
