@@ -1274,3 +1274,26 @@
     transform: translate(-50%, 0);
   }
 }
+
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --drawer-peek: 18px; /* how much of the drawer/handle is always visible */
+}
+
+/* If your drawer element has a class/id, apply this to it */
+.fp-drawer, #fpDrawer, .drawer {
+  bottom: calc(var(--safe-bottom) + var(--drawer-peek));
+}
+
+/* Make sure the drawer itself has room inside for the home indicator */
+.fp-drawer__inner, .fp-drawer-inner, #fpDrawerInner {
+  padding-bottom: calc(var(--safe-bottom) + 12px);
+}
+
+.fp-grabber, .drawer-grabber {
+  height: 24px;
+  margin: 8px auto 6px;
+  width: 48px;
+  border-radius: 999px;
+  opacity: 0.9;
+}
