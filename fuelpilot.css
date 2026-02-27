@@ -1288,3 +1288,11 @@
   font-size: 18px;
   z-index: 9999;
 }
+
+/* Prevent double-tap to zoom (keeps the app feel) */
+.fp-app,
+.fp-map-wrap,
+.fp-controls,
+.fp-drawer {
+  touch-action: manipulation;
+}

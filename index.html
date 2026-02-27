@@ -24,7 +24,7 @@
     }, 4000);
     </script>
 
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+ <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 
   <title>FuelPilot – Live UK Fuel Prices Near You | Petrol & Diesel Map</title>
   <meta name="description" content="FuelPilot is a clean, map-first way to find live UK fuel prices near you." />
@@ -183,6 +183,42 @@
 
     <!-- App JS -->
     <script defer src="/fuelpilot.js"></script>
+
+    <script>
+/**
+ * iOS Safari: prevent page zoom on accidental double-tap.
+ * - Does NOT block single-finger panning/dragging (Leaflet still works).
+ * - Only cancels the *second* tap if it happens quickly.
+ */
+(function () {
+  var lastTouchEnd = 0;
+
+  document.addEventListener("touchend", function (e) {
+    // Ignore multi-touch gestures (pinch etc.)
+    if (e.touches && e.touches.length > 0) return;
+
+    // Only apply inside our app shell (prevents weird side effects)
+    var inApp = e.target && e.target.closest && e.target.closest(".fp-app");
+    if (!inApp) return;
+
+    // Don't interfere with form controls
+    var tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
+    if (tag === "input" || tag === "textarea" || tag === "select") return;
+
+    var now = Date.now();
+    if (now - lastTouchEnd <= 350) {
+      e.preventDefault(); // <-- stops the browser double-tap zoom
+    }
+    lastTouchEnd = now;
+  }, { passive: false, capture: true });
+
+  // Also block the "dblclick" zoom fallback some browsers trigger
+  document.addEventListener("dblclick", function (e) {
+    var inApp = e.target && e.target.closest && e.target.closest(".fp-app");
+    if (inApp) e.preventDefault();
+  }, { passive: false, capture: true });
+})();
+</script>
   </div>
 </body>
 </html>
