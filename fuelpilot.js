@@ -69,9 +69,17 @@ function recolorForViewport() {
 
 function invalidateMapSoon() {
   if (!map) return;
-  // next frame + a short delay catches layout settling on iOS/Safari
+
+  // Next frame + delayed passes catch layout settling (iOS/Safari, fonts, drawer)
   requestAnimationFrame(() => map.invalidateSize({ pan: false }));
   setTimeout(() => map.invalidateSize({ pan: false }), 200);
+  setTimeout(() => map.invalidateSize({ pan: false }), 450);
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      if (map) map.invalidateSize({ pan: false });
+    }).catch(() => {});
+  }
 }
 
   // -----------------------------
@@ -210,10 +218,19 @@ function invalidateMapSoon() {
     map = L.map("fpMap", { zoomControl: false });
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    const tiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 18,
       attribution: "&copy; OpenStreetMap"
-    }).addTo(map);
+    });
+
+    // If tiles fail during first paint (esp. Safari/iOS), force a redraw
+    tiles.on("tileerror", () => {
+      setTimeout(() => {
+        if (map) map.invalidateSize({ pan: false });
+      }, 300);
+    });
+
+    tiles.addTo(map);
 
     invalidateMapSoon();
 
@@ -266,12 +283,21 @@ function invalidateMapSoon() {
   // -----------------------------
   // API calls
   // -----------------------------
-  async function tryFetchJson(url) {
-    const res = await fetch(url, { headers: { accept: "application/json" } });
-    const text = await res.text();
-    let data = null;
-    try { data = JSON.parse(text); } catch (e) {}
-    return { res, text, data };
+  async function tryFetchJson(url, attempt = 1) {
+    try {
+      const res = await fetch(url, { headers: { accept: "application/json" } });
+      const text = await res.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch (e) {}
+      return { res, text, data };
+    } catch (err) {
+      // One retry helps with transient first-load / edge hiccups
+      if (attempt <= 1) {
+        await new Promise((r) => setTimeout(r, 500));
+        return tryFetchJson(url, attempt + 1);
+      }
+      throw err;
+    }
   }
 
   function apiUrl(path, paramsObj) {
@@ -706,6 +732,11 @@ function renderList() {
 
   // ✅ Final pass: make sure colours match the visible view right now
   recolorForViewport();
+
+  // ✅ Final layout settle after rendering list/markers (prevents occasional blank tiles)
+  setTimeout(() => {
+    if (map) map.invalidateSize({ pan: false });
+  }, 150);
 }
 
   async function runSearchPresetOrRefresh(center, presetConfig) {
@@ -876,6 +907,8 @@ function renderList() {
         const preset = PRESETS[regionKey] || PRESETS.central;
         try {
           await runSearchPresetOrRefresh({ lat: c.lat, lng: c.lng }, preset);
+          // Extra settle after first load/render
+          setTimeout(() => invalidateMapSoon(), 400);
         } catch (err) {
           console.error(err);
           setStatus(`Error: ${err.message || "Search failed"}`);
