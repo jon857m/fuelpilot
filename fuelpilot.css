@@ -10,6 +10,25 @@
     "Segoe UI Emoji";
 }
 
+
+/* ==========================
+   Embedded mode (Lakes header)
+   ========================== */
+
+/* default: no header */
+:root { --fp-site-header-h: 0px; }
+
+/* When FuelPilot is embedded under a site header:
+   pin the app and subtract the header height */
+body.fp-embedded .fp-app {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--fp-site-header-h);
+  height: calc(100dvh - var(--fp-site-header-h));
+  overflow: hidden;
+}
+
 .fp-site-header {
   position: relative;
   z-index: 30;
