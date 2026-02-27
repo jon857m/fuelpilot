@@ -10,6 +10,11 @@
   // -----------------------------
   // Config
   // -----------------------------
+  window.__FP_BOOT_OK__ = true;
+  window.__FP_BOOT_TS__ = Date.now();
+
+  console.info("[FuelPilot] boot OK", new Date().toISOString());
+  
   const DEFAULT_API_BASE = "https://fuelpilot-api.jonmargree.workers.dev";
   const API_BASE = (window.FP_API_BASE && String(window.FP_API_BASE).trim()) || DEFAULT_API_BASE;
 

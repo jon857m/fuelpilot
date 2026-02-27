@@ -1274,3 +1274,17 @@
     transform: translate(-50%, 0);
   }
 }
+
+.fp-boot-failed body::before {
+  content: "FuelPilot failed to load. Tap to reload.";
+  position: fixed;
+  inset: 0;
+  background: #0b0f14;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Inter, sans-serif;
+  font-size: 18px;
+  z-index: 9999;
+}
