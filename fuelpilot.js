@@ -618,7 +618,10 @@ function buildMarker(st, cuts) {
     els.selectedCard.hidden = false;
     els.selectedCard.innerHTML = `
       <div class="fp-card fp-sel ${selClass}">
+        <div class="fp-card__priceRow">
         <div class="fp-card__price">${escapeHtml(priceText)}</div>
+          ${hasPrice ? fpBrandBadgeHTML(st) : ""}
+        </div>
         <div class="fp-card__name">${escapeHtml(name)}</div>
         <div class="fp-card__addr">${escapeHtml(addr)}</div>
 
@@ -671,23 +674,26 @@ function renderList() {
     // priced = fp-q0..fp-q4, missing = fp-missing
     const rowClass = hasPrice ? quintileClass(st._priceNum, cuts) : "fp-missing";
 
-    return `
-      <div class="fp-row ${rowClass}" role="listitem" data-id="${escapeHtml(st._id)}">
-        <div class="fp-row__left">
-          <div class="fp-row__price">
-            ${escapeHtml(p)}
-            ${fuelLabel ? `<span class="fp-mini" style="opacity:.75">${escapeHtml(fuelLabel)}</span>` : ""}
-          </div>
-          <div class="fp-row__meta">${escapeHtml(name)} — ${escapeHtml(addr)}</div>
-        </div>
-        <div class="fp-row__right">
-          <span class="fp-mini">${escapeHtml(dist)}</span>
-          <a class="fp-link-btn" href="${dir}" target="_blank" rel="noopener" aria-label="Directions">
-            ↗
-          </a>
-        </div>
+const badgeHTML = fpBrandBadgeHTML(st);
+
+return `
+  <div class="fp-row ${rowClass}" role="listitem" data-id="${escapeHtml(st._id)}">
+    <div class="fp-row__left">
+      <div class="fp-row__price">
+        ${escapeHtml(p)}
+        ${badgeHTML}
+        ${fuelLabel ? `<span class="fp-mini" style="opacity:.75">${escapeHtml(fuelLabel)}</span>` : ""}
       </div>
-    `;
+      <div class="fp-row__meta">${escapeHtml(name)} — ${escapeHtml(addr)}</div>
+    </div>
+    <div class="fp-row__right">
+      <span class="fp-mini">${escapeHtml(dist)}</span>
+      <a class="fp-link-btn" href="${dir}" target="_blank" rel="noopener" aria-label="Directions">
+        ↗
+      </a>
+    </div>
+  </div>
+`;
   }).join("");
 
   const rows = els.list.querySelectorAll(".fp-row");
