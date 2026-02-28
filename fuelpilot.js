@@ -18,6 +18,12 @@
   const DEFAULT_API_BASE = "https://fuelpilot-api.jonmargree.workers.dev";
   const API_BASE = (window.FP_API_BASE && String(window.FP_API_BASE).trim()) || DEFAULT_API_BASE;
 
+  // -----------------------------
+// Feature flags
+// -----------------------------
+const FP_ENABLE_BRAND_BADGES = true;   // master on/off
+const FP_BRAND_BADGE_ZOOM = null;      // set to a number like 11 to only show at/above that zoom; or null = always show (when enabled)
+
   const LS = {
     fuel: "fp_fuel",
     sort: "fp_sort",           // "price" | "distance"
@@ -43,6 +49,43 @@
 
     return map.getBounds().contains([lat, lng]);
   }
+
+// -----------------------------
+// Feature flag: Brand badges
+// -----------------------------
+
+function fpNormalizeBrand(raw) {
+  const s = String(raw || "").trim().toLowerCase();
+  if (!s) return null;
+
+  if (s.includes("shell")) return "shell";
+  if (s === "bp" || s.includes(" bp")) return "bp";
+  if (s.includes("esso")) return "esso";
+  if (s.includes("texaco")) return "texaco";
+  if (s.includes("tesco")) return "tesco";
+  if (s.includes("asda")) return "asda";
+  if (s.includes("morrisons")) return "morrisons";
+  if (s.includes("sainsbury")) return "sainsburys";
+  if (s.includes("gulf")) return "gulf";
+  if (s.includes("jet")) return "jet";
+  if (s.includes("essar")) return "essar";
+  if (s.includes("costco")) return "costco";
+
+  return null;
+}
+
+function fpBrandBadgeHTML(st) {
+  if (!FP_ENABLE_BRAND_BADGES) return "";
+
+  const brand = fpNormalizeBrand(st.brand || st.operator || st.retailer);
+  if (!brand) return "";
+
+  return `
+    <span class="fp-brand-badge fp-brand-${brand}">
+      <img src="/assets/brands/${brand}.svg" alt="" loading="lazy" />
+    </span>
+  `;
+}
 
 function recolorForViewport() {
   if (!stations || !stations.length || !map || !cluster) return;
@@ -445,34 +488,46 @@ function computeQuintiles(stationsWithPrices) {
     activeMarkerId = null;
   }
 
-  function buildMarker(st, cuts) {
-    const lat = Number(st.lat != null ? st.lat : st.latitude);
-    const lng = Number(st.lng != null ? st.lng : (st.lon != null ? st.lon : st.longitude));
-    if (!isFinite(lat) || !isFinite(lng)) return null;
+function buildMarker(st, cuts) {
+  const lat = Number(st.lat != null ? st.lat : st.latitude);
+  const lng = Number(st.lng != null ? st.lng : (st.lon != null ? st.lon : st.longitude));
+  if (!isFinite(lat) || !isFinite(lng)) return null;
 
-    const priceNum = st._priceNum;
+  const priceNum = st._priceNum;
 
-    // ✅ Missing / no-price path
-    if (priceNum == null || !isFinite(priceNum)) {
+  // Brand badge (empty string if disabled / unknown / independent)
+  const badgeHTML = fpBrandBadgeHTML(st);
+
+  // ✅ Missing / no-price path
+  if (priceNum == null || !isFinite(priceNum)) {
     const html = `
-        <div class="fp-flag fp-flag--missing" data-mid="${escapeHtml(st._id)}">—</div>
+      <div class="fp-flag fp-flag--missing" data-mid="${escapeHtml(st._id)}">
+        ${badgeHTML}
+        —
+      </div>
     `;
     const icon = L.divIcon({ html, className: "", iconSize: [1, 1] });
     const m = L.marker([lat, lng], { icon });
     m.on("click", () => selectStation(st._id, { openDrawer: true, pan: true }));
     return m;
-}
-
-    // ✅ Existing priced marker path (unchanged)
-    const qClass = quintileClass(priceNum, cuts);
-    const priceText = formatPrice(priceNum);
-    const html = `<div class="fp-flag ${qClass}" data-mid="${escapeHtml(st._id)}">${escapeHtml(priceText)}</div>`;
-    const icon = L.divIcon({ html, className: "", iconSize: [1, 1] });
-
-    const m = L.marker([lat, lng], { icon });
-    m.on("click", () => selectStation(st._id, { openDrawer: true, pan: true }));
-    return m;
   }
+
+  // ✅ Existing priced marker path
+  const qClass = quintileClass(priceNum, cuts);
+  const priceText = formatPrice(priceNum);
+
+  const html = `
+    <div class="fp-flag ${qClass}" data-mid="${escapeHtml(st._id)}">
+      ${badgeHTML}
+      ${escapeHtml(priceText)}
+    </div>
+  `;
+
+  const icon = L.divIcon({ html, className: "", iconSize: [1, 1] });
+  const m = L.marker([lat, lng], { icon });
+  m.on("click", () => selectStation(st._id, { openDrawer: true, pan: true }));
+  return m;
+}
 
   // -----------------------------
   // Selection + drawer/card rendering

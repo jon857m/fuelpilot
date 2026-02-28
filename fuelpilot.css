@@ -1315,3 +1315,39 @@ body.fp-embedded .fp-app {
 .fp-drawer {
   touch-action: manipulation;
 }
+
+.fp-flag {
+  position: relative;
+}
+
+.fp-brand-badge {
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.fp-brand-badge img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+}
+
+.fp-brand-sainsburys img{
+  width: 54%;
+  height: 54%;
+}
+
+.fp-brand-asda img{
+  width: 58%;
+  height: 58%;
+}
