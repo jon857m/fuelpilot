@@ -60,6 +60,7 @@ function fpNormalizeBrand(raw) {
 
   if (s.includes("shell")) return "shell";
   if (s === "bp" || s.includes(" bp")) return "bp";
+  if (s.replace(/\s+/g, "").includes("bp")) return "bp";
   if (s.includes("esso")) return "esso";
   if (s.includes("texaco")) return "texaco";
   if (s.includes("tesco")) return "tesco";
@@ -70,6 +71,21 @@ function fpNormalizeBrand(raw) {
   if (s.includes("jet")) return "jet";
   if (s.includes("essar")) return "essar";
   if (s.includes("costco")) return "costco";
+  if (s.includes("4 elms")) return "jet";
+  if (s.includes("applegreen")) return "applegreen";
+  if (s.includes("co-op")) return "coopc";
+  if (s.includes("central convenience")) return "centralconvenience";
+  if (s.includes("cirlce k")) return "circlek";
+  if (s.includes("eg on the move")) return "eg";
+  if (/\bemo\b/.test(s)) return "emo";
+  if (s.includes("maxol")) return "maxol";
+  if (s.includes("murco")) return "murco";
+  if (s.includes("nicholl auto 365")) return "nicholl";
+  if (s.includes("pace")) return "pace";
+  if (s.includes("spar")) return "spar";
+  if (s.includes("total")) return "total";
+  if (s.includes("valero")) return "valero";
+  if (s.includes("welcome break")) return "wb";
 
   return null;
 }
@@ -82,7 +98,15 @@ function fpBrandBadgeHTML(st) {
 
   return `
     <span class="fp-brand-badge fp-brand-${brand}">
-      <img src="/assets/brands/${brand}.svg" alt="" loading="lazy" />
+      <img src="/assets/brands/${brand}.svg" alt="" loading="lazy"
+      onerror="
+        if (this.src.endsWith('.svg')) {
+          this.src='/assets/brands/${brand}.png';
+        } else if (this.src.endsWith('.png')) {
+          this.src='/assets/brands/${brand}.jpg';
+        }
+      "
+    />
     </span>
   `;
 }
