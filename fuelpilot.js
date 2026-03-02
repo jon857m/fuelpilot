@@ -33,11 +33,12 @@ const FP_BRAND_BADGE_ZOOM = null;      // set to a number like 11 to only show a
   };
 
   const PRESETS = {
-    lakes:   { name: "Lakes (wide)",   lat: 54.55, lng: -3.15, zoom: 10, radiusMiles: 28, limit: 250 },
-    north:   { name: "North Lakes",    lat: 54.70, lng: -3.00, zoom: 11, radiusMiles: 16, limit: 200 },
-    central: { name: "Central Lakes",  lat: 54.55, lng: -3.15, zoom: 11, radiusMiles: 16, limit: 200 },
-    south:   { name: "South Lakes",    lat: 54.25, lng: -2.95, zoom: 11, radiusMiles: 16, limit: 200 }
-  };
+        lakes:   { name: "Lakes (wide)",   lat: 54.55, lng: -3.15, zoom: 10, radiusMiles: 28,  limit: 250 },
+        north:   { name: "North Lakes",    lat: 54.70, lng: -3.00, zoom: 11, radiusMiles: 16,  limit: 200 },
+        central: { name: "Central Lakes",  lat: 54.55, lng: -3.15, zoom: 11, radiusMiles: 16,  limit: 200 },
+        south:   { name: "South Lakes",    lat: 54.25, lng: -2.95, zoom: 11, radiusMiles: 16,  limit: 200 },
+        seo:     { name: "UK",             lat: 54.5,  lng: -3.0,  zoom: 6,  radiusMiles: 120, limit: 250 } // neutral UK view
+      };
 
   function isInView(st) {
     if (!map) return false;
@@ -570,19 +571,24 @@ cluster = L.markerClusterGroup({
     map.addLayer(cluster);
 
     const savedMap = readJSONLS(LS.map, null);
-    if (savedMap && isFinite(savedMap.lat) && isFinite(savedMap.lng) && isFinite(savedMap.zoom)) {
+
+    if (!window.__FP_SEO_MODE__ && savedMap && isFinite(savedMap.lat) && isFinite(savedMap.lng) && isFinite(savedMap.zoom)) {
       map.setView([savedMap.lat, savedMap.lng], savedMap.zoom);
       invalidateMapSoon();
       setStatus("Restored last map");
     } else {
-      const def = PRESETS.central;
+      const def = window.__FP_SEO_MODE__ ? PRESETS.seo : PRESETS.central;
       map.setView([def.lat, def.lng], def.zoom);
       invalidateMapSoon();
     }
 
-    map.on("dragend zoomend", () => {
+    map.on("moveend zoomend", () => {
+      // In SEO mode, do NOT overwrite the user's remembered last location.
+      if (window.__FP_SEO_MODE__) return;
+
       const c = map.getCenter();
       const newCenter = { lat: +c.lat.toFixed(6), lng: +c.lng.toFixed(6) };
+
       writeJSONLS(LS.map, { ...newCenter, zoom: map.getZoom() });
 
       if (!lastSearchCenter) {

@@ -206,6 +206,21 @@
       </details>
     </section>
 
+      <script>
+        // Flag SEO mode early (so fuelpilot.js can see it)
+        (function () {
+          var path = (location.pathname || "").toLowerCase();
+          var sp = new URLSearchParams(location.search || "");
+
+          var hasQuerySeo = (sp.get("fuel") && sp.get("place"));
+          var hasPathSeo = /^\/fuel\/(petrol|diesel)\/[^\/]+\/?$/.test(path);
+
+          if (hasQuerySeo || hasPathSeo) {
+            window.__FP_SEO_MODE__ = true;
+          }
+        })();
+      </script>
+
     <!-- App JS -->
     <script defer src="/fuelpilot.js"></script>
 
