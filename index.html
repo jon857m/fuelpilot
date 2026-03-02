@@ -100,17 +100,32 @@
           <div class="fp-controls__divider"></div>
 
           <!-- Single control row (Fuel + My Location) -->
-          <div class="fp-controls__row">
-            <select class="fp-select" id="fpFuelSelect" aria-label="Fuel type">
-              <option value="E10">Petrol (E10)</option>
-              <option value="E5">Premium (E5)</option>
-              <option value="DIESEL">Diesel</option>
-            </select>
+<!-- Fuel + Search + Location -->
+        <div class="fp-controls__row fp-controls__row--search">
 
-            <button class="fp-btn" id="fpMyLocationBtn" type="button">
-              My Location
-            </button>
+          <select class="fp-select fp-select--fuel" id="fpFuelSelect" aria-label="Fuel type">
+            <option value="E10">Petrol</option>
+            <option value="E5">Premium Petrol</option>
+            <option value="DIESEL">Diesel</option>
+          </select>
+
+          <div class="fp-search">
+            <input
+              type="text"
+              id="fpSearchInput"
+              class="fp-search__input"
+              placeholder="Search road, town or postcode"
+              autocomplete="off"
+              inputmode="search"
+            />
+            <div class="fp-search__results" id="fpSearchResults" hidden></div>
           </div>
+
+          <button class="fp-icon-btn fp-loc-btn" id="fpMyLocationBtn" type="button" aria-label="My location">
+            <span class="fp-loc-ico" aria-hidden="true"></span>
+          </button>
+
+        </div>
 
           <!-- Hidden legacy controls (kept for JS compatibility) -->
           <div style="display:none;">

@@ -181,11 +181,233 @@ function invalidateMapSoon() {
     modalClose: $("fpModalCloseBtn"),
     legendBtn: $("fpLegendBtn"),
     legend: $("fpLegend"),
+    searchInput: $("fpSearchInput"),
+    searchResults: $("fpSearchResults"),
   };
 
   function setStatus(text) {
     if (els.status) els.status.textContent = text;
   }
+
+// -----------------------------
+// Location search (autocomplete) — UK only
+// - 3+ chars
+// - debounce
+// - tap result pans + auto refresh (Search this area)
+// - dims other controls while active
+// -----------------------------
+function initLocationSearch() {
+  if (!els.searchInput || !els.searchResults) return;
+
+  const controlsEl = document.querySelector(".fp-controls");
+  const input = els.searchInput;
+  const box = els.searchResults;
+
+  let timer = null;
+  let lastQuery = "";
+  let results = [];
+  let active = false;
+  let aborter = null;
+
+  const MIN_CHARS = 3;
+  const MAX_RESULTS = 5;
+  const DEBOUNCE_MS = 300;
+
+  function setActive(v) {
+    active = !!v;
+    if (!controlsEl) return;
+    controlsEl.classList.toggle("is-searching", active);
+  }
+
+  function closeBox() {
+    box.hidden = true;
+    box.innerHTML = "";
+    results = [];
+    setActive(false);
+  }
+
+  function openBox() {
+    box.hidden = false;
+    setActive(true);
+  }
+
+  function escapeHtmlLite(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function render(list) {
+    results = list || [];
+    if (!results.length) {
+      closeBox();
+      return;
+    }
+
+    openBox();
+
+    box.innerHTML = results
+      .slice(0, MAX_RESULTS)
+      .map((r, idx) => {
+        const main = r.main || r.display || r.name || "Result";
+        const sub = r.sub || r.context || "";
+        return `
+          <div class="fp-suggest" data-idx="${idx}" role="button" tabindex="0">
+            <div class="fp-suggest__main">${escapeHtmlLite(main)}</div>
+            ${sub ? `<div class="fp-suggest__sub">${escapeHtmlLite(sub)}</div>` : ""}
+          </div>
+        `;
+      })
+      .join("");
+
+    // click handlers
+    const items = box.querySelectorAll(".fp-suggest");
+    for (let i = 0; i < items.length; i++) {
+      items[i].addEventListener("click", () => chooseIndex(i));
+    }
+  }
+
+  async function geocode(q) {
+    // Cancel previous in-flight request
+    if (aborter) aborter.abort();
+    aborter = new AbortController();
+
+    // Nominatim (OpenStreetMap) — UK only
+    const url =
+      "https://nominatim.openstreetmap.org/search?" +
+      new URLSearchParams({
+        q,
+        format: "json",
+        addressdetails: "1",
+        limit: String(MAX_RESULTS),
+        countrycodes: "gb",
+      }).toString();
+
+    const res = await fetch(url, {
+      signal: aborter.signal,
+      headers: {
+        // A polite UA hint (browser may ignore, but harmless)
+        "Accept": "application/json",
+      },
+    });
+
+    if (!res.ok) throw new Error("Geocoder HTTP " + res.status);
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
+
+    return data.map((r) => {
+      const lat = Number(r.lat);
+      const lng = Number(r.lon);
+
+      // Build a nice Apple-ish two-line label
+      const a = r.address || {};
+      const road = a.road || a.pedestrian || a.footway || "";
+      const house = a.house_number ? String(a.house_number) : "";
+      const city = a.city || a.town || a.village || a.hamlet || "";
+      const county = a.county || "";
+      const postcode = a.postcode || "";
+
+      const main =
+        (postcode && q.replace(/\s+/g, "").length <= 8 && postcode.replace(/\s+/g, "").startsWith(q.replace(/\s+/g, "").toUpperCase()))
+          ? postcode
+          : (house || road) ? [house, road].filter(Boolean).join(" ").trim()
+          : (r.display_name ? String(r.display_name).split(",")[0] : q);
+
+      const subParts = [];
+      if (city) subParts.push(city);
+      if (county && county !== city) subParts.push(county);
+      if (postcode && main !== postcode) subParts.push(postcode);
+
+      return {
+        lat,
+        lng,
+        main,
+        sub: subParts.join(", "),
+        raw: r,
+      };
+    }).filter((x) => isFinite(x.lat) && isFinite(x.lng));
+  }
+
+  async function doQuery(q) {
+    const trimmed = String(q || "").trim();
+    lastQuery = trimmed;
+
+    if (trimmed.length < MIN_CHARS) {
+      closeBox();
+      return;
+    }
+
+    try {
+      const list = await geocode(trimmed);
+      // Only render if user hasn't typed something else since request started
+      if (lastQuery === trimmed) render(list);
+    } catch (e) {
+      if (e && e.name === "AbortError") return;
+      console.warn("[FuelPilot] geocode error", e);
+      closeBox();
+    }
+  }
+
+  async function chooseIndex(idx) {
+    const r = results[idx];
+    if (!r) return;
+
+    // Update input to chosen label
+    input.value = r.main || input.value;
+
+    closeBox();
+
+    // Pan + refresh
+    if (map && isFinite(r.lat) && isFinite(r.lng)) {
+      map.setView([r.lat, r.lng], Math.max(map.getZoom() || 12, 12), { animate: true, duration: 0.35 });
+      invalidateMapSoon();
+
+      // Mark dirty then immediately run viewport search
+      mapDirty = true;
+      updateSearchAreaButton();
+
+      setTimeout(async () => {
+        try {
+          await runSearchAreaViewport();
+        } catch (err) {
+          console.error(err);
+          setStatus(`Error: ${err.message || "Search failed"}`);
+        }
+      }, 380); // slightly longer than animation duration
+    }
+  }
+
+  // Debounced input
+  input.addEventListener("input", () => {
+    const q = input.value;
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => doQuery(q), DEBOUNCE_MS);
+  });
+
+  // Enter = pick first suggestion (if present), otherwise just close
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (results && results.length) chooseIndex(0);
+      else closeBox();
+    } else if (e.key === "Escape") {
+      closeBox();
+    }
+  });
+
+  // Click outside closes
+  document.addEventListener("click", (e) => {
+    const inside = e.target.closest && e.target.closest(".fp-search");
+    if (!inside) closeBox();
+  });
+
+  // Focus behaviour: if user focuses and we already have results, show them
+  input.addEventListener("focus", () => {
+    if (results && results.length) openBox();
+  });
+}
 
   function readJSONLS(key, fallback) {
     try {
@@ -905,20 +1127,36 @@ return `
     setStatus("Getting location…");
 
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         lastOrigin = { lat, lng };
+
         map.setView([lat, lng], 12, { animate: true, duration: 0.35 });
         invalidateMapSoon();
-        setStatus("My Location set");
+
+        // Ensure bounds reflect the new view before searching
         mapDirty = true;
         updateSearchAreaButton();
+
+        // Run the actual "search this area" automatically
+        try {
+          setTimeout(async () => {
+            try {
+              await runSearchAreaViewport();
+            } catch (err) {
+              console.error(err);
+              setStatus(`Error: ${err.message || "Search failed"}`);
+            }
+          }, 380); // slightly longer than animation duration
+        } catch (err) {
+          console.error(err);
+        }
       },
       () => setStatus("Location permission denied"),
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
     );
-  }
+      }
 
   // -----------------------------
   // Modal
@@ -976,6 +1214,7 @@ return `
 
     initMap();
     initDrawerInteractions();
+    initLocationSearch();
 
     if (els.regionSelect) els.regionSelect.addEventListener("change", (e) => applyPreset(e.target.value));
 
