@@ -90,23 +90,47 @@ function fpNormalizeBrand(raw) {
   return null;
 }
 
+// Brand icon extensions (only exceptions; default is svg)
+const FP_BRAND_ICON_EXT = {
+  // You have these as PNG/JPG in assets/brands
+  murco: "png",
+  maxol: "png",
+  pace: "png",
+  total: "png",
+  emo: "png",
+  wb: "png",
+  centralconvenience: "png",
+
+  // This one is jpg in your folder
+  nicholl: "jpg",
+};
+
+function fpBrandIconUrl(brand) {
+  const ext = FP_BRAND_ICON_EXT[brand] || "svg";
+  return `/assets/brands/${brand}.${ext}`;
+}
+
 function fpBrandBadgeHTML(st) {
   if (!FP_ENABLE_BRAND_BADGES) return "";
 
   const brand = fpNormalizeBrand(st.brand || st.operator || st.retailer);
   if (!brand) return "";
 
+  const src0 = fpBrandIconUrl(brand);
+
   return `
     <span class="fp-brand-badge fp-brand-${brand}">
-      <img src="/assets/brands/${brand}.svg" alt="" loading="lazy"
-      onerror="
-        if (this.src.endsWith('.svg')) {
-          this.src='/assets/brands/${brand}.png';
-        } else if (this.src.endsWith('.png')) {
-          this.src='/assets/brands/${brand}.jpg';
-        }
-      "
-    />
+      <img src="${src0}" alt="" loading="lazy"
+        onerror="
+          if (this.dataset.fpFallbackDone) return;
+          this.dataset.fpFallbackDone = '1';
+          if (this.src.endsWith('.svg')) {
+            this.src = '/assets/brands/${brand}.png';
+          } else if (this.src.endsWith('.png')) {
+            this.src = '/assets/brands/${brand}.jpg';
+          }
+        "
+      />
     </span>
   `;
 }
