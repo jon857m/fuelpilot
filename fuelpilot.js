@@ -552,12 +552,20 @@ function initLocationSearch() {
 
     invalidateMapSoon();
 
-    cluster = L.markerClusterGroup({
-      showCoverageOnHover: false,
-      spiderfyOnMaxZoom: true,
-      disableClusteringAtZoom: 15,
-      maxClusterRadius: 45
-    });
+cluster = L.markerClusterGroup({
+  // Break clusters sooner as you zoom in
+  maxClusterRadius: (zoom) => {
+    if (zoom >= 14) return 18; // almost no clustering
+    if (zoom >= 13) return 24;
+    if (zoom >= 12) return 34;
+    if (zoom >= 11) return 46;
+    return 60; // zoomed out
+  },
+
+  showCoverageOnHover: false,
+  spiderfyOnMaxZoom: true,
+  zoomToBoundsOnClick: true
+});
 
     map.addLayer(cluster);
 

@@ -1678,3 +1678,187 @@ body.fp-embedded .fp-app {
   border-color: rgba(255,255,255,0.20) !important;
 }
 
+/* -------------------------------------------
+   FuelPilot signature glow (behind the wordmark)
+   - anchored to the title, NOT the panel
+   - keeps the look deliberate + premium
+-------------------------------------------- */
+
+.fp-title__name{
+  position: relative;
+  display: inline-block;
+  overflow: visible; /* allow the glow to bloom */
+}
+
+/* keep the text above the glow */
+.fp-title__name > *{
+  position: relative;
+  z-index: 2;
+}
+
+/* Soft “bloom” behind the wordmark (brand blue) */
+.fp-title__name::after{
+  content:"";
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  transform: translate(-50%, -50%);
+
+  width: 86%;
+  height: 18px;
+
+  background: radial-gradient(
+    closest-side,
+    rgba(37, 99, 235, 0.85),
+    rgba(37, 99, 235, 0.20) 55%,
+    rgba(37, 99, 235, 0.00) 100%
+  );
+
+  filter: blur(8px);
+  opacity: 0.75;
+
+  pointer-events: none;
+  z-index: 1;
+
+  /* optional: makes it feel more “light” on dark glass */
+  mix-blend-mode: screen;
+}
+
+/* Crisp underline “core” (the sharp glow you described) */
+.fp-title__name::before{
+  content:"";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+
+  width: 64%;
+  height: 2px;
+  border-radius: 999px;
+
+  background: linear-gradient(
+    90deg,
+    rgba(37, 99, 235, 0.00),
+    rgba(37, 99, 235, 0.95),
+    rgba(37, 99, 235, 0.00)
+  );
+
+  filter: blur(0.4px);
+  opacity: 0.85;
+
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Mobile: slightly smaller so it never feels “busy” */
+@media (max-width: 520px){
+  .fp-title__name::after{ height: 16px; filter: blur(7px); opacity: 0.70; }
+  .fp-title__name::before{ width: 58%; bottom: -5px; opacity: 0.82; }
+
+  /* -----------------------------------------
+   FuelPilot wordmark glow (deliberate + premium)
+   Anchored to the title text, not the whole panel
+------------------------------------------ */
+
+/* Crisp core line (the “hard” glow) */
+.fp-title__name::before{
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -6px;
+
+  width: 62%;
+  height: 2px;
+  border-radius: 999px;
+
+  background: linear-gradient(90deg,
+    rgba(37, 99, 235, 0.00),
+    rgba(37, 99, 235, 1.00),
+    rgba(37, 99, 235, 0.00)
+  );
+
+  filter: blur(0.35px);
+  opacity: 0.95;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Mobile: slightly calmer so it doesn’t feel “busy” */
+@media (max-width: 520px){
+  .fp-title__name::after{ width: 84%; height: 16px; filter: blur(7px); opacity: 0.85; }
+  .fp-title__name::before{ width: 68%; bottom: -5px; opacity: 0.90; }
+}
+}
+
+/* -----------------------------------------
+   FuelPilot wordmark glow (deliberate + premium)
+   Anchored to the title text, not the whole panel
+------------------------------------------ */
+
+/* Ensure the title can host pseudo-elements */
+.fp-title__name{
+  position: relative;
+  display: inline-block;
+  isolation: isolate; /* keeps blend effects contained */
+}
+
+/* Keep text above the glow */
+.fp-title__name > *{
+  position: relative;
+  z-index: 2;
+}
+
+/* Soft bloom behind the wordmark */
+.fp-title__name::after{
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -10px;
+
+  width: 78%;          /* important: not full width */
+  height: 18px;
+
+  background: radial-gradient(closest-side,
+    rgba(37, 99, 235, 0.95) 0%,
+    rgba(37, 99, 235, 0.45) 45%,
+    rgba(37, 99, 235, 0.00) 100%
+  );
+
+  filter: blur(8px);
+  opacity: 0.95;
+  mix-blend-mode: screen; /* “Apple” glow on dark glass */
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Crisp core line (the “hard” glow) */
+.fp-title__name::before{
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -6px;
+
+  width: 62%;
+  height: 2px;
+  border-radius: 999px;
+
+  background: linear-gradient(90deg,
+    rgba(37, 99, 235, 0.00),
+    rgba(37, 99, 235, 1.00),
+    rgba(37, 99, 235, 0.00)
+  );
+
+  filter: blur(0.35px);
+  opacity: 0.95;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Mobile: slightly calmer so it doesn’t feel “busy” */
+@media (max-width: 520px){
+  .fp-title__name::after{ width: 84%; height: 16px; filter: blur(7px); opacity: 0.85; }
+  .fp-title__name::before{ width: 68%; bottom: -5px; opacity: 0.90; }
+}
