@@ -1862,3 +1862,27 @@ body.fp-embedded .fp-app {
   .fp-title__name::after{ width: 84%; height: 16px; filter: blur(7px); opacity: 0.85; }
   .fp-title__name::before{ width: 68%; bottom: -5px; opacity: 0.90; }
 }
+
+/* --- SEO block (below fold, safe for Google) --- */
+.fp-seo{
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 18px 16px 56px;
+}
+.fp-seo-h1{
+  font-size: 22px;
+  margin: 0 0 10px;
+}
+.fp-seo-intro{
+  margin: 0 0 12px;
+  opacity: .9;
+}
+.fp-seo-stats{
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+.fp-seo-details summary{
+  cursor: pointer;
+  user-select: none;
+}

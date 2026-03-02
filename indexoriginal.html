@@ -9,26 +9,27 @@
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
+
     gtag('config', 'G-QECLBG9SJ9');
   </script>
 
-  <script>
-    window.__FP_BOOT_OK__ = false;
-    window.__FP_BOOT_TS__ = 0;
-    setTimeout(function () {
-      if (!window.__FP_BOOT_OK__) {
+    <script>
+        window.__FP_BOOT_OK__ = false;
+        window.__FP_BOOT_TS__ = 0;
+        setTimeout(function () {
+        if (!window.__FP_BOOT_OK__) {
         document.documentElement.classList.add("fp-boot-failed");
         console.warn("[FuelPilot] Boot watchdog: JS did not run");
-      }
+        }
     }, 4000);
-  </script>
+    </script>
 
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+ <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 
   <title>FuelPilot – Live UK Fuel Prices Near You | Petrol & Diesel Map</title>
   <meta name="description" content="FuelPilot is a clean, map-first way to find live UK fuel prices near you." />
 
-  <!-- Canonical (SEO script will update this on /fuel/... routes) -->
+  <!-- Canonical -->
   <link rel="canonical" href="https://fuelpilot.co.uk/" />
 
   <meta name="robots" content="index, follow, max-image-preview:large">
@@ -38,6 +39,7 @@
   <meta property="og:description" content="A clean, map-first way to find live UK fuel prices near you." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://fuelpilot.co.uk/" />
+  <!-- TODO: replace with a real FuelPilot share image when ready -->
   <meta property="og:image" content="https://fuelpilot.co.uk/assets/og-fuelpilot.jpg" />
 
   <!-- Twitter -->
@@ -49,7 +51,7 @@
   <!-- App feel -->
   <meta name="theme-color" content="#0b0c0f" />
 
-  <!-- Icons -->
+  <!-- Icons (TODO: replace with proper favicons) -->
   <link rel="icon" href="/assets/favicon.png" />
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
 
@@ -62,10 +64,10 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <script defer src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <!-- Font -->
+  <!-- (Optional) Font load — you can remove if you want pure system font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&display=swap" rel="stylesheet" />
 
-  <!-- App CSS -->
+  <!-- App CSS (in this new repo, keep it at /fuelpilot.css) -->
   <link rel="stylesheet" href="/fuelpilot.css" />
 </head>
 
@@ -97,32 +99,33 @@
 
           <div class="fp-controls__divider"></div>
 
-          <!-- Fuel + Search + Location -->
-          <div class="fp-controls__row fp-controls__row--search">
+          <!-- Single control row (Fuel + My Location) -->
+<!-- Fuel + Search + Location -->
+        <div class="fp-controls__row fp-controls__row--search">
 
-            <select class="fp-select fp-select--fuel" id="fpFuelSelect" aria-label="Fuel type">
-              <option value="E10">Petrol</option>
-              <option value="E5">Premium Petrol</option>
-              <option value="DIESEL">Diesel</option>
-            </select>
+          <select class="fp-select fp-select--fuel" id="fpFuelSelect" aria-label="Fuel type">
+            <option value="E10">Petrol</option>
+            <option value="E5">Premium Petrol</option>
+            <option value="DIESEL">Diesel</option>
+          </select>
 
-            <div class="fp-search">
-              <input
-                type="text"
-                id="fpSearchInput"
-                class="fp-search__input"
-                placeholder="Search road, town or postcode"
-                autocomplete="off"
-                inputmode="search"
-              />
-              <div class="fp-search__results" id="fpSearchResults" hidden></div>
-            </div>
-
-            <button class="fp-icon-btn fp-loc-btn" id="fpMyLocationBtn" type="button" aria-label="My location">
-              <span class="fp-loc-ico" aria-hidden="true"></span>
-            </button>
-
+          <div class="fp-search">
+            <input
+              type="text"
+              id="fpSearchInput"
+              class="fp-search__input"
+              placeholder="Search road, town or postcode"
+              autocomplete="off"
+              inputmode="search"
+            />
+            <div class="fp-search__results" id="fpSearchResults" hidden></div>
           </div>
+
+          <button class="fp-icon-btn fp-loc-btn" id="fpMyLocationBtn" type="button" aria-label="My location">
+            <span class="fp-loc-ico" aria-hidden="true"></span>
+          </button>
+
+        </div>
 
           <!-- Hidden legacy controls (kept for JS compatibility) -->
           <div style="display:none;">
@@ -193,61 +196,44 @@
 
     </div>
 
-    <!-- ✅ SEO BLOCK (below fold, safe) -->
-    <section id="fpSeo" class="fp-seo" aria-label="FuelPilot location information">
-      <h1 id="fpSeoH1" class="fp-seo-h1">Fuel prices</h1>
-      <p id="fpSeoIntro" class="fp-seo-intro"></p>
-
-      <div id="fpSeoStats" class="fp-seo-stats"></div>
-
-      <details class="fp-seo-details">
-        <summary>More info</summary>
-        <div id="fpSeoBody" class="fp-seo-body"></div>
-      </details>
-    </section>
-
     <!-- App JS -->
     <script defer src="/fuelpilot.js"></script>
 
-    <!-- ✅ SEO JS (separate file, only activates on /fuel/... routes) -->
-    <script defer src="/fp-seo.js"></script>
-
     <script>
-      /**
-       * iOS Safari: prevent page zoom on accidental double-tap.
-       * - Does NOT block single-finger panning/dragging (Leaflet still works).
-       * - Only cancels the *second* tap if it happens quickly.
-       */
-      (function () {
-        var lastTouchEnd = 0;
+/**
+ * iOS Safari: prevent page zoom on accidental double-tap.
+ * - Does NOT block single-finger panning/dragging (Leaflet still works).
+ * - Only cancels the *second* tap if it happens quickly.
+ */
+(function () {
+  var lastTouchEnd = 0;
 
-        document.addEventListener("touchend", function (e) {
-          // Ignore multi-touch gestures (pinch etc.)
-          if (e.touches && e.touches.length > 0) return;
+  document.addEventListener("touchend", function (e) {
+    // Ignore multi-touch gestures (pinch etc.)
+    if (e.touches && e.touches.length > 0) return;
 
-          // Only apply inside our app shell (prevents weird side effects)
-          var inApp = e.target && e.target.closest && e.target.closest(".fp-app");
-          if (!inApp) return;
+    // Only apply inside our app shell (prevents weird side effects)
+    var inApp = e.target && e.target.closest && e.target.closest(".fp-app");
+    if (!inApp) return;
 
-          // Don't interfere with form controls
-          var tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
-          if (tag === "input" || tag === "textarea" || tag === "select") return;
+    // Don't interfere with form controls
+    var tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
+    if (tag === "input" || tag === "textarea" || tag === "select") return;
 
-          var now = Date.now();
-          if (now - lastTouchEnd <= 350) {
-            e.preventDefault(); // <-- stops the browser double-tap zoom
-          }
-          lastTouchEnd = now;
-        }, { passive: false, capture: true });
+    var now = Date.now();
+    if (now - lastTouchEnd <= 350) {
+      e.preventDefault(); // <-- stops the browser double-tap zoom
+    }
+    lastTouchEnd = now;
+  }, { passive: false, capture: true });
 
-        // Also block the "dblclick" zoom fallback some browsers trigger
-        document.addEventListener("dblclick", function (e) {
-          var inApp = e.target && e.target.closest && e.target.closest(".fp-app");
-          if (inApp) e.preventDefault();
-        }, { passive: false, capture: true });
-      })();
-    </script>
-
+  // Also block the "dblclick" zoom fallback some browsers trigger
+  document.addEventListener("dblclick", function (e) {
+    var inApp = e.target && e.target.closest && e.target.closest(".fp-app");
+    if (inApp) e.preventDefault();
+  }, { passive: false, capture: true });
+})();
+</script>
   </div>
 </body>
 </html>
