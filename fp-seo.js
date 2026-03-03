@@ -97,24 +97,42 @@
   // ----- places.json lookup (optional) -----
   let PLACES = null;
 
-  async function loadPlaces() {
-    if (PLACES) return PLACES;
-    try {
-      const res = await fetch("/data/places.json", { cache: "force-cache" });
-      const json = await res.json();
-      const arr = Array.isArray(json.places) ? json.places : [];
-      const map = new Map();
-      for (const p of arr) {
-        if (p && p.slug) map.set(String(p.slug).toLowerCase(), p);
+async function loadPlaces() {
+  if (PLACES) return PLACES;
+
+  try {
+    const BUILD = "20260303"; // 🔁 bump this when places.json changes
+
+    const isDev =
+      location.hostname === "127.0.0.1" ||
+      location.hostname === "localhost";
+
+    const url =
+      "/data/places.json?v=" + (isDev ? Date.now() : BUILD);
+
+    const res = await fetch(url, {
+      cache: isDev ? "no-store" : "force-cache"
+    });
+
+    const json = await res.json();
+    const arr = Array.isArray(json.places) ? json.places : [];
+
+    const map = new Map();
+    for (const p of arr) {
+      if (p && p.slug) {
+        map.set(String(p.slug).toLowerCase(), p);
       }
-      PLACES = map;
-      return PLACES;
-    } catch (e) {
-      console.warn("[FP SEO] places.json not available", e);
-      PLACES = new Map();
-      return PLACES;
     }
+
+    PLACES = map;
+    return PLACES;
+
+  } catch (e) {
+    console.warn("[FP SEO] places.json not available", e);
+    PLACES = new Map();
+    return PLACES;
   }
+}
 
   async function enrich(route) {
     const map = await loadPlaces();
