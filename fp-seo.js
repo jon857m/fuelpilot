@@ -67,6 +67,25 @@
     return null;
   }
 
+  function fpKmBetween(aLat, aLng, bLat, bLng) {
+    const R = 6371; // km
+    const toRad = (d) => (d * Math.PI) / 180;
+
+    const dLat = toRad(bLat - aLat);
+    const dLng = toRad(bLng - aLng);
+
+    const lat1 = toRad(aLat);
+    const lat2 = toRad(bLat);
+
+    const s =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1) * Math.cos(lat2) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+    return R * c;
+  }
+
   function slugToQuery(s) {
     return String(s || "")
       .replace(/-/g, " ")
@@ -104,9 +123,44 @@
     return { ...route, name, type: hit && hit.type ? String(hit.type) : "unknown" };
   }
 
+  // ---- places.json loader (cached) ----
+  let __FP_PLACES_CACHE__ = null;
+
+  async function fpLoadPlaces() {
+    if (__FP_PLACES_CACHE__) return __FP_PLACES_CACHE__;
+
+    const res = await fetch("/data/places.json", { cache: "force-cache" });
+    if (!res.ok) throw new Error(`places.json fetch failed: ${res.status}`);
+
+    const data = await res.json();
+    __FP_PLACES_CACHE__ = Array.isArray(data) ? data : (data.places || []);
+    return __FP_PLACES_CACHE__;
+  }
+
+  function fpSeoNavigate(href) {
+  try {
+    // If your router exposes a navigate function, use it
+    if (window.__FP_NAVIGATE__) {
+      window.__FP_NAVIGATE__(href);
+      return;
+    }
+    if (typeof window.fpNavigate === "function") {
+      window.fpNavigate(href);
+      return;
+    }
+  } catch (e) {}
+
+  // Fallback: normal navigation
+  window.location.href = href;
+}
+
   function renderSeo(route) {
     const fuelLabel = route.fuel === "diesel" ? "diesel" : "petrol";
     const placeLabel = route.name;
+
+   fpLoadPlaces()
+   .then((places) => console.log("[SEO] places loaded:", places.length))
+   .catch((e) => console.warn("[SEO] places load error:", e));
 
     // ✅ SAFE: only set if nodes exist (no crashes)
     const h1 = document.getElementById("fpSeoH1");
@@ -131,26 +185,88 @@
         <p>Pan or zoom, then tap <strong>Search this area</strong> to refresh results for what’s on screen.</p>
       `;
 
-      body.insertAdjacentHTML(
-        "beforeend",
-        `
-          <div class="fp-seo-cluster">
-            <h3>Nearby petrol pages</h3>
-            <div class="fp-seo-links">
-              <a href="/fuel/petrol/bath/">Bath</a>
-              <a href="/fuel/petrol/cardiff/">Cardiff</a>
-              <a href="/fuel/petrol/exeter/">Exeter</a>
-            </div>
+      fpLoadPlaces()
+        .then((places) => {
+          if (!Array.isArray(places)) return;
 
-            <h3 style="margin-top:14px;">Nearby diesel pages</h3>
-            <div class="fp-seo-links">
-              <a href="/fuel/diesel/bath/">Bath</a>
-              <a href="/fuel/diesel/cardiff/">Cardiff</a>
-              <a href="/fuel/diesel/exeter/">Exeter</a>
-            </div>
-          </div>
-        `
-      );
+          const currentSlug = route.slug || "";
+          const others = places.filter((p) => p && p.slug && p.slug !== currentSlug);
+
+          // Deterministic alphabetical sort
+          others.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+
+          // Smarter deterministic cluster (no geo needed)
+        const currentPlace =
+          places.find((p) => p && p.slug === currentSlug) ||
+          places.find((p) => p && String(p.name || "").toLowerCase().includes(String(route.name || "").toLowerCase())) ||
+          null;
+
+        const aLat = currentPlace && Number(currentPlace.lat);
+        const aLng = currentPlace && Number(currentPlace.lng);
+
+        let candidates = places.filter((p) => {
+          if (!p || !p.slug || p.slug === currentSlug) return false;
+          const lat = Number(p.lat);
+          const lng = Number(p.lng);
+          return isFinite(lat) && isFinite(lng);
+        });
+
+        if (isFinite(aLat) && isFinite(aLng)) {
+          candidates.sort((p1, p2) => {
+            const d1 = fpKmBetween(aLat, aLng, Number(p1.lat), Number(p1.lng));
+            const d2 = fpKmBetween(aLat, aLng, Number(p2.lat), Number(p2.lng));
+            return d1 - d2;
+          });
+        } else {
+          // Fallback if a place has no centroid (should be rare)
+          candidates.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+        }
+
+        const cluster = candidates.slice(0, 8);
+
+          let petrolLinks = "";
+          let dieselLinks = "";
+
+          console.log("[SEO] cluster size:", cluster.length);
+
+          for (const p of cluster) {
+            const slug = p.slug;
+            const name = p.name || slug;
+
+            const pHref = "/fuel/petrol/" + encodeURIComponent(slug) + "/";
+            const dHref = "/fuel/diesel/" + encodeURIComponent(slug) + "/";
+
+            petrolLinks += '<a href="' + pHref + '" data-fp-href="' + pHref + '">' + name + "</a> ";
+            dieselLinks += '<a href="' + dHref + '" data-fp-href="' + dHref + '">' + name + "</a> ";
+                      }
+
+          const html =
+            '<div class="fp-seo-cluster">' +
+              "<h3>Nearby petrol pages</h3>" +
+              '<div class="fp-seo-links">' +
+                petrolLinks +
+              "</div>" +
+              '<h3 style="margin-top:14px;">Nearby diesel pages</h3>' +
+              '<div class="fp-seo-links">' +
+                dieselLinks +
+              "</div>" +
+            "</div>";
+
+          body.insertAdjacentHTML("beforeend", html);
+
+        // Intercept cluster link clicks so SPA routing works
+        const clusterEl = body.querySelector(".fp-seo-cluster:last-of-type");
+        if (clusterEl) {
+          clusterEl.addEventListener("click", (ev) => {
+            const a = ev.target && ev.target.closest ? ev.target.closest("a[data-fp-href]") : null;
+            if (!a) return;
+            ev.preventDefault();
+            fpSeoNavigate(a.getAttribute("data-fp-href"));
+          });
+}
+
+        })
+        .catch((e) => console.warn("[SEO] cluster build failed:", e));
     }
 
     // Title + meta description + canonical

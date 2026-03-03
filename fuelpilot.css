@@ -1936,3 +1936,26 @@ body.fp-seo-mode .fp-map-wrap{
 body.fp-seo-mode #fpSeo{
   padding-bottom: 18px;
 }
+
+/* SEO internal link clusters */
+.fp-seo-links{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.fp-seo-links a{
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  text-decoration: none;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.fp-seo-links a:hover{
+  background: rgba(255,255,255,0.10);
+}

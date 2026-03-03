@@ -28,7 +28,7 @@ const MIN_STATIONS_DISTRICT = 3;    // outward postcode district
 const MAX_TOWNS = 5000;             // safety caps
 const MAX_DISTRICTS = 5000;
 
-const OUT_DIR = path.join(__dirname, "..", "public", "data");
+const OUT_DIR = path.join(__dirname, "..", "data");
 const OUT_FILE = path.join(OUT_DIR, "places.json");
 
 function readJson(p) {
@@ -59,6 +59,17 @@ function outward(postcode) {
 
 function loc(row) {
   return row && row.meta && row.meta.location ? row.meta.location : null;
+}
+
+function pickLatLng(row) {
+  const l = loc(row);
+  if (!l) return null;
+
+  const lat = Number(l.latitude);
+  const lng = Number(l.longitude);
+
+  if (!isFinite(lat) || !isFinite(lng)) return null;
+  return { lat, lng };
 }
 
 function pickTown(row) {
@@ -100,13 +111,28 @@ function pickCounty(row) {
   return c || null;
 }
 
-function bump(map, key, name, type) {
+function bump(map, key, name, type, latlng) {
   if (!key) return;
-  const cur = map.get(key) || { slug: key, name, count: 0, type };
+
+  const cur = map.get(key) || {
+    slug: key,
+    name,
+    count: 0,
+    type,
+    latSum: 0,
+    lngSum: 0
+  };
+
   cur.count += 1;
 
-  // Keep "best" name (longer tends to be more specific)
-  if (String(name).length > String(cur.name).length) cur.name = name;
+  if (String(name).length > String(cur.name).length) {
+    cur.name = name;
+  }
+
+  if (latlng) {
+    cur.latSum += latlng.lat;
+    cur.lngSum += latlng.lng;
+  }
 
   map.set(key, cur);
 }
@@ -134,31 +160,46 @@ function main() {
     const town = pickTown(r);
     const country = pickCountry(r);
     const county = pickCounty(r);
+    const latlng = pickLatLng(r);
 
     // Town only (e.g. "London")
     if (town) {
-      bump(townCounts, slugify(town), town, "town");
+      bump(townCounts, slugify(town), town, "town", latlng);
     }
 
     // Town + Country (e.g. "London, England")
     if (town && country) {
       const nm = `${town}, ${country}`;
-      bump(townCounts, slugify(`${town}-${country}`), nm, "town_country");
+      bump(townCounts, slugify(`${town}-${country}`), nm, "town_country", latlng);
     }
 
     // Town + County (only where county exists)
     if (town && county) {
       const nm = `${town}, ${county}`;
-      bump(townCounts, slugify(`${town}-${county}`), nm, "town_county");
+      bump(townCounts, slugify(`${town}-${county}`), nm, "town_county", latlng);
     }
 
     // Outward postcode district (e.g. SW1A, NR1, M1)
     const pc = pickPostcode(r);
     const out = outward(pc);
     if (out) {
-      bump(districtCounts, slugify(out), out, "district");
+      bump(districtCounts, slugify(out), out, "district", latlng);
     }
   }
+
+    function finalize(list) {
+    return list.map(p => {
+      if (p.count > 0 && Number.isFinite(p.latSum) && Number.isFinite(p.lngSum)) {
+        p.lat = p.latSum / p.count;
+        p.lng = p.lngSum / p.count;
+      }
+      delete p.latSum;
+      delete p.lngSum;
+      return p;
+    });
+  }
+
+
 
   const towns = [...townCounts.values()]
     .filter(x => x.count >= MIN_STATIONS_TOWN)
@@ -169,6 +210,9 @@ function main() {
     .filter(x => x.count >= MIN_STATIONS_DISTRICT)
     .sort((a, b) => b.count - a.count)
     .slice(0, MAX_DISTRICTS);
+
+  const townsFinal = finalize(towns);
+  const districtsFinal = finalize(districts);
 
   const out = {
     builtAt: new Date().toISOString(),
@@ -183,10 +227,12 @@ function main() {
       totalPlaces: towns.length + districts.length
     },
     places: [
-      ...towns,
-      ...districts
+      ...townsFinal,
+      ...districtsFinal
     ]
   };
+
+
 
   fs.mkdirSync(OUT_DIR, { recursive: true });
   fs.writeFileSync(OUT_FILE, JSON.stringify(out, null, 2), "utf8");
