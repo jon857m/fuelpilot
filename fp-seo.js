@@ -11,6 +11,7 @@
 
   // Force SEO mode ON for the main app
   window.__FP_SEO_MODE__ = true;
+  document.body.classList.add("fp-seo-mode");
 
   // Force Search-this-area visibility after landing
   window.__FP_SEO_FORCE_SEARCH_AREA__ = true;
@@ -129,6 +130,27 @@
         <p>FuelPilot shows fuel prices on a live map for <strong>${placeLabel}</strong> and nearby areas.</p>
         <p>Pan or zoom, then tap <strong>Search this area</strong> to refresh results for what’s on screen.</p>
       `;
+
+      body.insertAdjacentHTML(
+        "beforeend",
+        `
+          <div class="fp-seo-cluster">
+            <h3>Nearby petrol pages</h3>
+            <div class="fp-seo-links">
+              <a href="/fuel/petrol/bath/">Bath</a>
+              <a href="/fuel/petrol/cardiff/">Cardiff</a>
+              <a href="/fuel/petrol/exeter/">Exeter</a>
+            </div>
+
+            <h3 style="margin-top:14px;">Nearby diesel pages</h3>
+            <div class="fp-seo-links">
+              <a href="/fuel/diesel/bath/">Bath</a>
+              <a href="/fuel/diesel/cardiff/">Cardiff</a>
+              <a href="/fuel/diesel/exeter/">Exeter</a>
+            </div>
+          </div>
+        `
+      );
     }
 
     // Title + meta description + canonical

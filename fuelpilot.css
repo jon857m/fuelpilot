@@ -1869,6 +1869,15 @@ body.fp-embedded .fp-app {
   margin: 0 auto;
   padding: 18px 16px 56px;
 }
+
+/* SEO: give the content a solid readable surface */
+body.fp-seo-mode .fp-seo{
+  background: #0b0c0f;            /* same as app background */
+  border-top: 1px solid rgba(255,255,255,0.10);
+  position: relative;
+  z-index: 5;                     /* above the map */
+}
+
 .fp-seo-h1{
   font-size: 22px;
   margin: 0 0 10px;
@@ -1885,4 +1894,45 @@ body.fp-embedded .fp-app {
 .fp-seo-details summary{
   cursor: pointer;
   user-select: none;
+}
+
+/* ========= SEO MODE: allow reaching the SEO block ========= */
+body.fp-seo-mode .fp-app{
+  overflow-y: auto;              /* let the app scroll */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* keep the map section pinned while you scroll down to SEO */
+body.fp-seo-mode .fp-map-wrap{
+  position: sticky;
+  top: 0;
+}
+
+/* SEO panel: allow internal scrolling (helps iOS/mobile) */
+/*body.fp-seo-mode #fpSeo{
+  max-height: 45vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+/* Mobile: SEO content should NOT behave like a second drawer.
+   Only allow scrolling when "More info" is opened. */
+@media (max-width: 820px){
+  body.fp-seo-mode #fpSeoBody{
+    max-height: 0;
+    overflow: hidden;
+  }
+
+  body.fp-seo-mode details.fp-seo-details[open] #fpSeoBody{
+    max-height: 45vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+}
+
+/* Make it easier to grab on touch */
+body.fp-seo-mode #fpSeo{
+  padding-bottom: 18px;
 }
