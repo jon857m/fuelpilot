@@ -271,6 +271,22 @@ function initLocationSearch() {
       return;
     }
 
+  function setRobotsMeta(content) {
+    try {
+      let tag = document.querySelector('meta[name="robots"]');
+      if (!tag) {
+        tag = document.createElement("meta");
+        tag.setAttribute("name", "robots");
+        document.head.appendChild(tag);
+      }
+      tag.setAttribute("content", content);
+    } catch (e) {
+      // Never break the app because of meta
+      console.warn("[FuelPilot] setRobotsMeta failed:", e);
+    }
+  }
+
+
     openBox();
 
     box.innerHTML = results
@@ -532,6 +548,7 @@ function initLocationSearch() {
   let lastOrigin = null;       // {lat,lng}
   let stations = [];
   let mapDirty = false;
+  let seoForceSearchArea = false;
 
   function initMap() {
     map = L.map("fpMap", { zoomControl: false });
@@ -583,14 +600,15 @@ cluster = L.markerClusterGroup({
     }
 
     map.on("moveend zoomend", () => {
-      // In SEO mode, do NOT overwrite the user's remembered last location.
-      if (window.__FP_SEO_MODE__) return;
-
       const c = map.getCenter();
       const newCenter = { lat: +c.lat.toFixed(6), lng: +c.lng.toFixed(6) };
 
-      writeJSONLS(LS.map, { ...newCenter, zoom: map.getZoom() });
+      // ✅ Only skip *saving* in SEO mode (keep the rest of the UX)
+      if (!window.__FP_SEO_MODE__) {
+        writeJSONLS(LS.map, { ...newCenter, zoom: map.getZoom() });
+      }
 
+      // ✅ Keep Search-this-area behaviour in ALL modes
       if (!lastSearchCenter) {
         mapDirty = true;
       } else {
@@ -599,18 +617,26 @@ cluster = L.markerClusterGroup({
       }
 
       updateSearchAreaButton();
-
-      // ✅ Re-colour markers/list based on what's currently visible
       recolorForViewport();
     });
   }
 
-  function updateSearchAreaButton() {
-    if (!els.searchAreaBtn) return;
-    const shouldShow = mapDirty || (Array.isArray(stations) && stations.length === 0);
-    if (shouldShow) els.searchAreaBtn.classList.add("is-visible");
-    else els.searchAreaBtn.classList.remove("is-visible");
-  }
+    function updateSearchAreaButton() {
+      if (!els.searchAreaBtn) return;
+
+      const hasStations = Array.isArray(stations) && stations.length > 0;
+
+      // Normal rule: show if map has moved away from last search ("dirty") or no stations yet.
+      let shouldShow = mapDirty || !hasStations;
+
+      // SEO rule: after landing, keep it visible as a "try nearby" affordance
+      if (window.__FP_SEO_MODE__ && window.__FP_SEO_FORCE_SEARCH_AREA__) {
+        shouldShow = true;
+      }
+
+      if (shouldShow) els.searchAreaBtn.classList.add("is-visible");
+      else els.searchAreaBtn.classList.remove("is-visible");
+    }
 
   // -----------------------------
   // API calls
@@ -1285,6 +1311,10 @@ return `
 
     if (els.searchAreaBtn) {
       els.searchAreaBtn.addEventListener("click", async () => {
+
+        if (window.__FP_SEO_MODE__) {
+          window.__FP_SEO_FORCE_SEARCH_AREA__ = false;
+        }
         try {
           await runSearchAreaViewport();
         } catch (err) {
@@ -1373,4 +1403,37 @@ return `
   }
 
   document.addEventListener("DOMContentLoaded", init);
+
+// --- SEO: robots meta control (based on priced count line) ---
+function setRobots(content) {
+  try {
+    let tag = document.querySelector('meta[name="robots"]');
+    if (!tag) {
+      tag = document.createElement("meta");
+      tag.setAttribute("name", "robots");
+      document.head.appendChild(tag);
+    }
+    tag.setAttribute("content", content);
+  } catch (e) {
+    console.warn("[FP SEO] setRobots failed", e);
+  }
+}
+
+// Default: conservative until we confirm enough priced stations
+setRobots("noindex,follow,max-image-preview:large");
+
+// After results render, inspect drawer count line
+setTimeout(() => {
+  const el = document.getElementById("fpCountLine");
+  const txt = (el ? el.textContent : "").toLowerCase();
+  const m = txt.match(/(\d+)\s*priced/);
+  const priced = m ? parseInt(m[1], 10) : 0;
+
+  if (priced >= 6)
+    setRobots("index,follow,max-image-preview:large");
+  else
+    setRobots("noindex,follow,max-image-preview:large");
+
+}, 1800);
+
 })();

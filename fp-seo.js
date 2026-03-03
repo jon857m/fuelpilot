@@ -1,203 +1,217 @@
-/* fp-seo.js
-   Safe SEO enhancer:
-   - Supports LOCAL testing: /?fuel=petrol&place=nr1
-   - Supports LIVE routes:   /fuel/petrol/nr1/
-   - Does NOT change core app logic; only uses existing UI controls
-*/
 (function () {
-  if (window.__FP_SEO_LOADED__) return;
-  window.__FP_SEO_LOADED__ = true;
+  "use strict";
 
-  function parseSeoRoute() {
-    // 1) LOCAL TEST MODE
-    //    http://127.0.0.1:5501/?fuel=petrol&place=nr1
-    var sp = new URLSearchParams(window.location.search || "");
-    var qFuel = (sp.get("fuel") || "").toLowerCase();
-    var qPlace = (sp.get("place") || "").trim();
-    if ((qFuel === "petrol" || qFuel === "diesel") && qPlace) {
-      return { fuel: qFuel, slug: qPlace };
+  const path = (location.pathname || "").toLowerCase();
+  const sp = new URLSearchParams(location.search || "");
+
+  const hasSeoQuery = sp.get("fuel") && sp.get("place");
+  const hasSeoPath = /^\/fuel\/(petrol|diesel)\/[^\/\?]+\/?$/.test(path);
+
+  if (!(hasSeoQuery || hasSeoPath)) return;
+
+  // Force SEO mode ON for the main app
+  window.__FP_SEO_MODE__ = true;
+
+  // Force Search-this-area visibility after landing
+  window.__FP_SEO_FORCE_SEARCH_AREA__ = true;
+
+  function $(sel) { return document.querySelector(sel); }
+  function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+  function ensureMeta(name) {
+    let tag = document.querySelector(`meta[name="${name}"]`);
+    if (!tag) {
+      tag = document.createElement("meta");
+      tag.setAttribute("name", name);
+      document.head.appendChild(tag);
     }
-
-    // 2) LIVE SEO ROUTES
-    //    https://fuelpilot.co.uk/fuel/petrol/nr1/
-    var path = (window.location.pathname || "").toLowerCase();
-    var m = path.match(/^\/fuel\/(petrol|diesel)\/([^\/]+)\/?$/);
-    if (!m) return null;
-
-    return {
-      fuel: m[1],
-      slug: decodeURIComponent(m[2] || "").trim()
-    };
+    return tag;
   }
 
-  function setCanonical(url) {
-    var link = document.querySelector('link[rel="canonical"]');
+  function ensureCanonical() {
+    let link = document.querySelector('link[rel="canonical"]');
     if (!link) {
       link = document.createElement("link");
       link.setAttribute("rel", "canonical");
       document.head.appendChild(link);
     }
-    link.setAttribute("href", url);
+    return link;
   }
 
-  function setMetaDescription(text) {
-    var md = document.querySelector('meta[name="description"]');
-    if (!md) {
-      md = document.createElement("meta");
-      md.setAttribute("name", "description");
-      document.head.appendChild(md);
+  function normalizeFuel(f) {
+    const s = String(f || "").toLowerCase();
+    return s.includes("diesel") ? "diesel" : "petrol";
+  }
+
+  function cleanSlug(s) {
+    return String(s || "").trim().toLowerCase().replace(/^\/+|\/+$/g, "");
+  }
+
+  function parseSeoRoute() {
+    const path = (location.pathname || "").toLowerCase();
+    const sp = new URLSearchParams(location.search || "");
+
+    const qFuel = sp.get("fuel");
+    const qPlace = sp.get("place");
+
+    if (qPlace) {
+      return { fuel: normalizeFuel(qFuel), slug: cleanSlug(qPlace) };
     }
-    md.setAttribute("content", text);
+
+    const m = path.match(/^\/fuel\/(petrol|diesel)\/([^\/\?]+)\/?$/i);
+    if (m) {
+      return { fuel: normalizeFuel(m[1]), slug: cleanSlug(m[2]) };
+    }
+
+    return null;
   }
 
-  function setOg(url, title, desc) {
-    function upsert(prop, value) {
-      var el = document.querySelector('meta[property="' + prop + '"]');
-      if (!el) {
-        el = document.createElement("meta");
-        el.setAttribute("property", prop);
-        document.head.appendChild(el);
+  function slugToQuery(s) {
+    return String(s || "")
+      .replace(/-/g, " ")
+      .replace(/,/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  // ----- places.json lookup (optional) -----
+  let PLACES = null;
+
+  async function loadPlaces() {
+    if (PLACES) return PLACES;
+    try {
+      const res = await fetch("/data/places.json", { cache: "force-cache" });
+      const json = await res.json();
+      const arr = Array.isArray(json.places) ? json.places : [];
+      const map = new Map();
+      for (const p of arr) {
+        if (p && p.slug) map.set(String(p.slug).toLowerCase(), p);
       }
-      el.setAttribute("content", value);
+      PLACES = map;
+      return PLACES;
+    } catch (e) {
+      console.warn("[FP SEO] places.json not available", e);
+      PLACES = new Map();
+      return PLACES;
     }
-    upsert("og:url", url);
-    if (title) upsert("og:title", title);
-    if (desc) upsert("og:description", desc);
+  }
+
+  async function enrich(route) {
+    const map = await loadPlaces();
+    const hit = map.get(route.slug);
+    const name = hit && hit.name ? String(hit.name) : route.slug.toUpperCase();
+    return { ...route, name, type: hit && hit.type ? String(hit.type) : "unknown" };
   }
 
   function renderSeo(route) {
-    var place = (route.slug || "").toUpperCase();
-    var fuelTitle = (route.fuel === "diesel") ? "Diesel" : "Petrol";
+    const fuelLabel = route.fuel === "diesel" ? "diesel" : "petrol";
+    const placeLabel = route.name;
 
-    // Below-fold SEO block
-    var h1 = document.getElementById("fpSeoH1");
-    var intro = document.getElementById("fpSeoIntro");
-    var statsBox = document.getElementById("fpSeoStats");
-    var body = document.getElementById("fpSeoBody");
+    // ✅ SAFE: only set if nodes exist (no crashes)
+    const h1 = document.getElementById("fpSeoH1");
+    if (h1) h1.textContent = `Cheap ${fuelLabel} in ${placeLabel} and nearby`;
 
-    if (h1) h1.textContent = "Cheap " + fuelTitle.toLowerCase() + " prices in " + place;
-    if (intro) intro.textContent =
-      "Compare live " + fuelTitle.toLowerCase() + " prices in " + place + " using FuelPilot’s map. Use the controls above to search, filter and get directions.";
+    const intro = document.getElementById("fpSeoIntro");
+    if (intro) intro.textContent = `Live ${fuelLabel} prices around ${placeLabel}. Pan the map and use “Search this area” to refresh nearby stations.`;
 
-    if (statsBox) statsBox.innerHTML = ""; // we can add stats later
+    const stats = document.getElementById("fpSeoStats");
+    if (stats) {
+      stats.innerHTML = `
+        <div class="fp-seo-stat">Map-first</div>
+        <div class="fp-seo-stat">Compare nearby areas</div>
+        <div class="fp-seo-stat">Fast to use</div>
+      `;
+    }
 
+    const body = document.getElementById("fpSeoBody");
     if (body) {
-      body.innerHTML =
-        "<p>Prices can vary between nearby forecourts. Use the map above to compare prices where available and find the best option close to you.</p>" +
-        "<p>Tip: distance matters too — a slightly higher price closer to you can still work out cheaper overall.</p>";
+      body.innerHTML = `
+        <p>FuelPilot shows fuel prices on a live map for <strong>${placeLabel}</strong> and nearby areas.</p>
+        <p>Pan or zoom, then tap <strong>Search this area</strong> to refresh results for what’s on screen.</p>
+      `;
     }
 
-    // Title/meta/canonical
-    var base = "https://fuelpilot.co.uk";
-    var path = (window.location.pathname || "/").replace(/\/?$/, "/");
-    var url = base + path;
+    // Title + meta description + canonical
+    document.title = `Cheap ${fuelLabel} in ${placeLabel} and nearby | FuelPilot`;
 
-    var title = "Cheap " + fuelTitle.toLowerCase() + " in " + place + " | FuelPilot";
-    var desc = "Compare live " + fuelTitle.toLowerCase() + " prices in " + place + ". Use FuelPilot’s premium map to find the cheapest nearby stations.";
+    ensureMeta("description").setAttribute(
+      "content",
+      `Live ${fuelLabel} prices in ${placeLabel} and nearby. Compare stations on a map and find cheaper fuel fast.`
+    );
 
-    document.title = title;
-    setMetaDescription(desc);
-
-    // Only set canonical on live route pages; for local testing keep it simple
-    if (window.location.hostname !== "127.0.0.1" && window.location.hostname !== "localhost") {
-      setCanonical(url);
-      setOg(url, title, desc);
-    }
+    // Canonical: prefer clean path
+    const canon = ensureCanonical();
+    canon.setAttribute("href", location.origin + location.pathname.replace(/\/?$/, "/"));
   }
 
-  function applyRouteToUI(route) {
-    // Fuel dropdown: your values are Petrol=E10, Diesel=DIESEL
-    var fuelSel = document.getElementById("fpFuelSelect");
-    if (fuelSel && fuelSel.tagName === "SELECT") {
-      var targetFuel = (route.fuel === "diesel") ? "DIESEL" : "E10";
-      if (fuelSel.value !== targetFuel) {
-        fuelSel.value = targetFuel;
-        fuelSel.dispatchEvent(new Event("change", { bubbles: true }));
-      }
+  function trySetFuel(route) {
+    const sel = document.getElementById("fpFuelSelect");
+    if (!sel || sel.tagName !== "SELECT") return false;
+
+    const target = route.fuel === "diesel" ? "DIESEL" : "E10";
+    if (sel.value !== target) {
+      sel.value = target;
+      sel.dispatchEvent(new Event("change", { bubbles: true }));
     }
+    return true;
+  }
 
-    // Search input
-    var inp = document.getElementById("fpSearchInput");
-    if (!inp) return;
+  async function clickFirstSuggestion() {
+    const box = document.getElementById("fpSearchResults");
+    if (!box) return false;
 
-  var q = (route.slug || "").replace(/-/g, " ").trim();
-    inp.value = q.toUpperCase();
+    const first = box.querySelector(".fp-suggest[role='button']") || box.querySelector(".fp-suggest");
+    if (!first) return false;
+    first.click();
+    return true;
+  }
+
+  async function driveSearch(route) {
+    const inp = document.getElementById("fpSearchInput");
+    if (!inp) return false;
+
+    const q = slugToQuery(route.name || route.slug).toUpperCase();
+
+    inp.value = q;
     inp.dispatchEvent(new Event("input", { bubbles: true }));
 
-    // Wait for suggestions to appear, then click the first suggestion
-// Wait until suggestions are ready, then click the BEST matching one (stable)
-(function selectBestSuggestion() {
-  var wanted = (route.slug || "").toUpperCase(); // e.g. "NR1"
-  var tries = 0;
-
-  var timer = setInterval(function () {
-    tries += 1;
-
-    var box = document.getElementById("fpSearchResults");
-    if (!box) {
-      if (tries >= 20) clearInterval(timer);
-      return;
+    for (let i = 0; i < 30; i++) {
+      await sleep(120);
+      const ok = await clickFirstSuggestion();
+      if (ok) { try { inp.blur(); } catch (e) {} return true; }
     }
 
-    var items = Array.from(box.querySelectorAll(".fp-suggest"));
-    if (!items.length) {
-      if (tries >= 20) clearInterval(timer);
-      return;
-    }
-
-    // Pick the first suggestion whose MAIN label starts with our slug (e.g. "NR1 2BD" starts with "NR1")
-    // Always choose the first suggestion (stable for ambiguous places like London)
-    var best = box.querySelector(".fp-suggest[data-idx='0']") || box.querySelector(".fp-suggest");
-
-    if (!best) {
-      if (tries >= 20) clearInterval(timer);
-      return;
-    }
-
-    // If we didn't find a matching one yet, keep waiting a bit longer (prevents wrong-place clicks)
-    if (!best) {
-      if (tries >= 20) clearInterval(timer);
-      return;
-    }
-
-    // Click it using a full event sequence (most reliable)
-    best.focus();
-    best.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, pointerId: 1 }));
-    best.dispatchEvent(new PointerEvent("pointerup",   { bubbles: true, cancelable: true, pointerId: 1 }));
-    best.dispatchEvent(new MouseEvent("mousedown",    { bubbles: true, cancelable: true, view: window }));
-    best.dispatchEvent(new MouseEvent("mouseup",      { bubbles: true, cancelable: true, view: window }));
-    best.dispatchEvent(new MouseEvent("click",        { bubbles: true, cancelable: true, view: window }));
-
-    clearInterval(timer);
-  }, 150);
-})();
-    }
-
-  // Sometimes your app finishes wiring events a moment after DOMContentLoaded.
-  // We'll try a few times (fast, safe), then stop.
-  function applyWithRetry(route) {
-    var tries = 0;
-    var timer = setInterval(function () {
-      tries += 1;
-
-      // Try applying route
-      applyRouteToUI(route);
-
-      // If the search results box exists, we consider the UI "ready enough"
-      var inp = document.getElementById("fpSearchInput");
-      var box = document.getElementById("fpSearchResults");
-
-      if ((inp && box) || tries >= 10) {
-        clearInterval(timer);
-      }
-    }, 200);
+    inp.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", bubbles: true }));
+    inp.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", code: "Enter", bubbles: true }));
+    try { inp.blur(); } catch (e) {}
+    return true;
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
-    var route = parseSeoRoute();
-    if (!route) return;
+  async function applyRoute(route) {
+    // Wait until controls exist
+    for (let i = 0; i < 60; i++) {
+      const okFuel = trySetFuel(route);
+      const okInput = !!document.getElementById("fpSearchInput");
+      if (okFuel && okInput) break;
+      await sleep(120);
+    }
 
-    renderSeo(route);
-    applyWithRetry(route);
+    await driveSearch(route);
+
+    // ✅ Keep "Search this area" visible after landing (fuelpilot.js reads this)
+    window.__FP_SEO_FORCE_SEARCH_AREA__ = true;
+  }
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    const r0 = parseSeoRoute();
+    if (!r0) return;
+
+    const r = await enrich(r0);
+
+    // Render SEO text (safe)
+    try { renderSeo(r); } catch (e) { console.warn("[FP SEO] renderSeo failed", e); }
+
+    // Drive UI (safe)
+    try { applyRoute(r); } catch (e) { console.warn("[FP SEO] applyRoute failed", e); }
   });
 })();
