@@ -172,9 +172,45 @@ async function loadPlaces() {
   window.location.href = href;
 }
 
+    const FP_SEO_BLOCKED_BASES = new Set([
+      "ESSEX",
+      "GREATER LONDON",
+    ]);
+
+  function fpPlaceBaseKey(p) {
+    // Base town name (e.g. "LONDON" from "LONDON, England")
+    const name = String((p && p.name) || "").trim();
+
+    // If it has a comma, base is the part before it
+    const base = name.split(",")[0].trim();
+
+    // If no name, fall back to slug
+    const raw = base || String((p && p.slug) || "").trim();
+
+    // Normalize: uppercase + collapse spaces/punct
+    return raw
+      .toUpperCase()
+      .replace(/\s+/g, " ")
+      .replace(/[^\w\s]/g, "")   // remove commas/dots etc
+      .trim();
+  }
+
+
+    function fpTypeScore(p) {
+      const t = String((p && p.type) || "").toLowerCase();
+
+      // very large regions (e.g. Essex, Greater London) — lowest priority
+      if (p && p.count && p.count > 200) return 3;
+
+      if (t.startsWith("town")) return 0;   // best (towns)
+      if (t === "district") return 2;       // postcode districts
+      return 1;                             // counties / admin areas
+    }
+
   function renderSeo(route) {
     const fuelLabel = route.fuel === "diesel" ? "diesel" : "petrol";
     const placeLabel = route.name;
+    const fuelTitle = fuelLabel.charAt(0).toUpperCase() + fuelLabel.slice(1);
 
    fpLoadPlaces()
    .then((places) => console.log("[SEO] places loaded:", places.length))
@@ -182,10 +218,10 @@ async function loadPlaces() {
 
     // ✅ SAFE: only set if nodes exist (no crashes)
     const h1 = document.getElementById("fpSeoH1");
-    if (h1) h1.textContent = `Cheap ${fuelLabel} in ${placeLabel} and nearby`;
+    if (h1) h1.textContent = `Cheap ${fuelTitle} in ${placeLabel} and nearby`;
 
     const intro = document.getElementById("fpSeoIntro");
-    if (intro) intro.textContent = `Live ${fuelLabel} prices around ${placeLabel}. Pan the map and use “Search this area” to refresh nearby stations.`;
+    if (intro) intro.textContent = `Live ${fuelTitle} prices around ${placeLabel}. Pan the map and use “Search this area” to refresh nearby stations.`;
 
     const stats = document.getElementById("fpSeoStats");
     if (stats) {
@@ -198,11 +234,14 @@ async function loadPlaces() {
 
     const body = document.getElementById("fpSeoBody");
     if (body) {
-      body.innerHTML = `
-        <p>FuelPilot shows fuel prices on a live map for <strong>${placeLabel}</strong> and nearby areas.</p>
-        <p>Pan or zoom, then tap <strong>Search this area</strong> to refresh results for what’s on screen.</p>
-      `;
+    body.innerHTML = `
+      <p>FuelPilot shows <strong>${fuelLabel}</strong> prices on a live map for <strong>${placeLabel}</strong> and nearby areas.</p>
+      <p>Pan or zoom, then tap <strong>Search this area</strong> to refresh results for what’s on screen.</p>
 
+      <p><strong>${fuelTitle} near ${placeLabel}</strong>: compare nearby forecourts and find cheaper prices.</p>
+      <p>View <strong>${fuelTitle} stations in ${placeLabel}</strong> and check today’s updates.</p>
+      <p>See <strong>${fuelTitle} prices in ${placeLabel}</strong> compared with nearby areas.</p>
+    `;
       fpLoadPlaces()
         .then((places) => {
           if (!Array.isArray(places)) return;
@@ -233,14 +272,54 @@ async function loadPlaces() {
           candidates.sort((p1, p2) => {
             const d1 = fpKmBetween(aLat, aLng, Number(p1.lat), Number(p1.lng));
             const d2 = fpKmBetween(aLat, aLng, Number(p2.lat), Number(p2.lng));
-            return d1 - d2;
+
+            if (d1 !== d2) return d1 - d2;
+
+            // tie-break: prefer towns over districts
+            return fpTypeScore(p1) - fpTypeScore(p2);
           });
         } else {
-          // Fallback if a place has no centroid (should be rare)
-          candidates.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+          candidates.sort((a, b) =>
+            String(a.name || "").localeCompare(String(b.name || ""))
+          );
         }
 
-        const cluster = candidates.slice(0, 8);
+        const cluster = [];
+        const seen = new Set();
+        const currentBase = currentPlace ? fpPlaceBaseKey(currentPlace) : null;
+
+        function pushFrom(list) {
+          for (const p of list) {
+            if (!p) continue;
+
+          const base = fpPlaceBaseKey(p);
+
+          if (currentBase && base === currentBase) continue;
+          if (FP_SEO_BLOCKED_BASES.has(base)) continue;   // ✅ add this
+          if (seen.has(base)) continue;
+
+            cluster.push(p);
+            seen.add(base);
+
+            if (cluster.length === 8) return true;
+          }
+          return false;
+        }
+
+        const isTownPage = currentPlace && String(currentPlace.type || "").toLowerCase().startsWith("town");
+
+        // Pass 1: always towns first
+        pushFrom(candidates.filter(p => fpTypeScore(p) === 0));
+
+        if (cluster.length < 8) {
+          if (isTownPage) {
+            // On town pages: don't use admin/county/district fallbacks
+            // (better to show fewer than add "Essex")
+          } else {
+            // On district pages: allow non-towns as fallback
+            pushFrom(candidates.filter(p => fpTypeScore(p) !== 0));
+          }
+        }
 
           let petrolLinks = "";
           let dieselLinks = "";
@@ -250,12 +329,13 @@ async function loadPlaces() {
           for (const p of cluster) {
             const slug = p.slug;
             const name = p.name || slug;
+            const label = name.split(",")[0];
 
             const pHref = "/fuel/petrol/" + encodeURIComponent(slug) + "/";
             const dHref = "/fuel/diesel/" + encodeURIComponent(slug) + "/";
 
-            petrolLinks += '<a href="' + pHref + '" data-fp-href="' + pHref + '">' + name + "</a> ";
-            dieselLinks += '<a href="' + dHref + '" data-fp-href="' + dHref + '">' + name + "</a> ";
+        petrolLinks += '<a href="' + pHref + '" data-fp-href="' + pHref + '">' + label + "</a> ";
+        dieselLinks += '<a href="' + dHref + '" data-fp-href="' + dHref + '">' + label + "</a> ";
                       }
 
           const html =
