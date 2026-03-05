@@ -10,25 +10,24 @@ function normalizeStationKey(s) {
     .toLowerCase();
 }
 
-async function loadStationSlugMap(env) {
+async function loadStationSlugMap(env, origin) {
   // Cache in memory per isolate
   if (globalThis.__FP_STATION_SLUGS__) return globalThis.__FP_STATION_SLUGS__;
 
-  // ✅ Local dev safety: if R2 binding isn't present, just disable slug redirects
-  if (!env || !env.FUEL_R2 || typeof env.FUEL_R2.get !== "function") {
+  // Prefer the site-hosted JSON (same pattern as /data/places.json)
+  const url = new URL("/data/station-slugs.json", origin).toString();
+
+  const res = await fetch(url, {
+    cf: { cacheEverything: true, cacheTtl: 60 * 60 }, // 1 hour edge cache
+    headers: { "accept": "application/json" },
+  });
+
+  if (!res.ok) {
     globalThis.__FP_STATION_SLUGS__ = null;
     return null;
   }
 
-  const obj = await env.FUEL_R2.get("data/station-slugs.json");
-  if (!obj) {
-    globalThis.__FP_STATION_SLUGS__ = null;
-    return null;
-  }
-
-  const text = await obj.text();
-  const map = JSON.parse(text);
-
+  const map = await res.json();
   globalThis.__FP_STATION_SLUGS__ = map;
   return map;
 }
@@ -46,7 +45,7 @@ export default {
     const stationKey = normalizeStationKey(stationKeyRaw);
 
     if (stationKey && !isLikelyNodeId(stationKey)) {
-      const slugMap = await loadStationSlugMap(env);
+      const slugMap = await loadStationSlugMap(env, url.origin);
       const nodeId = slugMap?.[stationKey];
 
       if (nodeId) {
