@@ -3,3 +3,4 @@ Allow: /
 
 Sitemap: https://fuelpilot.co.uk/sitemap.xml
 
+Sitemap: https://fuelpilot.co.uk/sitemap-stations.xml
