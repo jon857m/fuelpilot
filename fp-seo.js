@@ -2,16 +2,247 @@
   "use strict";
 
   const path = (location.pathname || "").toLowerCase();
+  // NEW: station route parsing
+  const stationMatch = path.match(/^\/station\/([a-z0-9]{20,})\/?$/);
+  const stationIdFromPath = stationMatch ? stationMatch[1] : null;
   const sp = new URLSearchParams(location.search || "");
 
   const hasSeoQuery = sp.get("fuel") && sp.get("place");
-  const hasSeoPath = /^\/fuel\/(petrol|diesel)\/[^\/\?]+\/?$/.test(path);
+  const hasSeoPath  = /^\/fuel\/(petrol|diesel)\/[^\/\?]+\/?$/.test(path);
 
-  if (!(hasSeoQuery || hasSeoPath)) return;
+  // NEW: station pages
+  const hasStationPath = /^\/station\/[a-z0-9]{20,}\/?$/.test(path);
+
+  // Any SEO page type?
+  const isSeoPage = !!(hasSeoQuery || hasSeoPath || hasStationPath);
+
+  if (!isSeoPage) return;
 
   // Force SEO mode ON for the main app
   window.__FP_SEO_MODE__ = true;
   document.body.classList.add("fp-seo-mode");
+
+  // NEW: simple station-page placeholder (safe, removable)
+  if (stationIdFromPath) {
+    let box = document.getElementById("fpStationSeoBox");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "fpStationSeoBox";
+      box.style.cssText = `
+        position: relative;
+        z-index: 5;
+        margin: 12px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(0,0,0,0.35);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        color: #e9eef5;
+        max-width: 720px;
+      `;
+      document.body.prepend(box);
+    }
+
+box.innerHTML = `
+  <div style="font-weight:800;letter-spacing:-0.02em;margin-bottom:6px;">
+    Loading station…
+  </div>
+  <div style="opacity:0.75;font-size:12px;">
+    ID: <span style="font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;">${stationIdFromPath}</span>
+  </div>
+`;
+
+// Fetch station data from your existing API endpoint
+(async () => {
+  try {
+    const apiUrl = `https://fuelpilot-api.jonmargree.workers.dev/api/fuel/station?id=${encodeURIComponent(stationIdFromPath)}`;
+    const res = await fetch(apiUrl, { headers: { "accept": "application/json" } });
+
+    if (!res.ok) {
+      box.innerHTML = `
+        <div style="font-weight:800;margin-bottom:6px;">Station not available</div>
+        <div style="opacity:0.75;font-size:13px;">API error: ${res.status}</div>
+      `;
+      return;
+    }
+
+    const data = await res.json();
+    const s = data?.station || data; // supports either {station:{}} or direct station
+    const meta = s?.meta || {};
+    const loc = meta?.location || {};
+    const brand = (meta?.brand_name || "").toString().trim() || "Fuel station";
+    const name = (meta?.trading_name || s?.trading_name || "").toString().trim();
+    const town = (loc?.city || "").toString().trim();
+    const postcode = (loc?.postcode || "").toString().trim();
+    const line1 = (loc?.address_line_1 || "").toString().trim();
+
+    // ---- SEO: title/description/canonical for station pages ----
+    const prettyName = name || brand;
+    const placeBits = [town, postcode].filter(Boolean).join(" ");
+    const seoTitle = `${brand}${placeBits ? ` in ${placeBits}` : ""} — live fuel prices & opening times | FuelPilot`;
+    const seoDesc =
+      `Live petrol & diesel prices for ${prettyName}${placeBits ? ` (${placeBits})` : ""}. ` +
+      `Compare nearby fuel stations and get directions with FuelPilot.`;
+
+    document.title = seoTitle;
+
+    ensureMeta("description").setAttribute("content", seoDesc);
+    ensureMeta("robots").setAttribute("content", "index, follow, max-image-preview:large");
+
+    // canonical
+    let canon = document.querySelector('link[rel="canonical"]');
+    if (!canon) {
+      canon = document.createElement("link");
+      canon.setAttribute("rel", "canonical");
+      document.head.appendChild(canon);
+    }
+    canon.setAttribute("href", `https://fuelpilot.co.uk/station/${stationIdFromPath}`);
+
+    // OpenGraph + Twitter (minimal, safe)
+    function ensureProp(prop) {
+      let t = document.querySelector(`meta[property="${prop}"]`);
+      if (!t) { t = document.createElement("meta"); t.setAttribute("property", prop); document.head.appendChild(t); }
+      return t;
+    }
+    function ensureTw(name) {
+      let t = document.querySelector(`meta[name="${name}"]`);
+      if (!t) { t = document.createElement("meta"); t.setAttribute("name", name); document.head.appendChild(t); }
+      return t;
+    }
+    ensureProp("og:title").setAttribute("content", seoTitle);
+    ensureProp("og:description").setAttribute("content", seoDesc);
+    ensureProp("og:url").setAttribute("content", `https://fuelpilot.co.uk/station/${stationIdFromPath}`);
+    ensureProp("og:type").setAttribute("content", "website");
+    ensureTw("twitter:title").setAttribute("content", seoTitle);
+    ensureTw("twitter:description").setAttribute("content", seoDesc);
+
+    // prices
+    const prices = Array.isArray(s?.fuel_prices) ? s.fuel_prices : [];
+    const priceLines = prices
+      .map(p => {
+        const ft = (p.fuel_type || "").toString();
+        const pr = (p.price ?? "").toString();
+        return `<div style="display:flex;justify-content:space-between;gap:10px;">
+          <span style="opacity:0.8">${ft}</span>
+          <span style="font-weight:700">${pr}${pr ? "p" : ""}</span>
+        </div>`;
+      })
+      .join("");
+
+         // Nearby stations (temporary approach: use /api/fuel/near)
+    let nearbyHtml = `<div style="opacity:0.7;font-size:13px;">Nearby stations not available.</div>`;
+
+    const lat = loc?.latitude;
+    const lng = loc?.longitude;
+
+    if (typeof lat === "number" && typeof lng === "number") {
+      const nearUrl =
+        `https://fuelpilot-api.jonmargree.workers.dev/api/fuel/near` +
+        `?lat=${encodeURIComponent(lat)}` +
+        `&lng=${encodeURIComponent(lng)}` +
+        `&fuel=E10` +
+        `&radiusMiles=10` +
+        `&limit=25` +
+        `&sort=distance` +
+        `&includeMissing=1`;
+
+      const nearRes = await fetch(nearUrl, { headers: { "accept": "application/json" } });
+
+      if (nearRes.ok) {
+        const nearData = await nearRes.json();
+
+        console.log("[Station SEO] nearData keys:", Object.keys(nearData || {}));
+        console.log("[Station SEO] nearData sample:", nearData);
+
+        const list = Array.isArray(nearData?.stations) ? nearData.stations : (Array.isArray(nearData) ? nearData : []);
+
+        console.log("[Station SEO] stations returned:", list.length);
+        console.log("[Station SEO] first station keys:", list[0] ? Object.keys(list[0]) : null);
+        console.log("[Station SEO] first station node_id/meta.node_id:", list[0]?.node_id, list[0]?.meta?.node_id);
+
+        // Remove itself, then take first 20
+        const filtered = list.filter(x => (x?.node_id || x?.meta?.node_id) !== stationIdFromPath).slice(0, 20);
+
+        if (filtered.length) {
+          nearbyHtml = filtered.map(x => {
+        const xid = (x?.id || "").toString().trim();
+        const xbrand = (x?.brand || "").toString().trim() || "Station";
+        const xname = (x?.name || "").toString().trim();
+        const xpc = (x?.postcode || "").toString().trim();
+        const xdist = (x?.distanceMiles ?? "").toString();
+
+        if (!xid) return "";
+
+        return `
+          <a href="/station/${encodeURIComponent(xid)}"
+            style="display:flex;justify-content:space-between;gap:10px;
+                    padding:10px 0;text-decoration:none;color:#e9eef5;
+                    border-top:1px solid rgba(255,255,255,0.08);">
+            <span style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              ${xbrand}${xname ? ` — ${xname}` : ""}
+            </span>
+            <span style="opacity:0.75;white-space:nowrap;">
+              ${xdist ? `${Number(xdist).toFixed(1)} mi` : xpc}
+            </span>
+          </a>
+        `;
+          }).join("");
+        } else {
+          nearbyHtml = `<div style="opacity:0.7;font-size:13px;">No nearby stations found.</div>`;
+        }
+      }
+    } 
+
+    box.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div>
+          <div style="font-weight:900;letter-spacing:-0.02em;line-height:1.15;">
+            ${brand}${town ? ` in ${town}` : ""}
+          </div>
+          <div style="opacity:0.8;font-size:13px;margin-top:6px;line-height:1.35;">
+            ${name ? `${name}<br>` : ""}
+            ${line1 ? `${line1}<br>` : ""}
+            ${postcode ? postcode : ""}
+          </div>
+        </div>
+        <a href="/?station=${encodeURIComponent(stationIdFromPath)}"
+           style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+                  padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,0.14);
+                  background:rgba(255,255,255,0.06);color:#e9eef5;font-weight:700;">
+          Back to map
+        </a>
+      </div>
+
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.10);">
+        <div style="font-weight:800;margin-bottom:8px;">Current prices</div>
+        ${priceLines || `<div style="opacity:0.7;font-size:13px;">No prices available.</div>`}
+      </div>
+
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.10);">
+        <div style="font-weight:800;margin-bottom:8px;">Closest 20 stations</div>
+        <div>
+          ${nearbyHtml}
+        </div>
+      </div>
+
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.10);">
+        <a href="/for-forecourts?station=${encodeURIComponent(stationIdFromPath)}"
+           style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+                  padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,0.14);
+                  background:rgba(255,255,255,0.06);color:#e9eef5;font-weight:700;">
+          Claim this station
+        </a>
+      </div>
+    `;
+  } catch (err) {
+    box.innerHTML = `
+      <div style="font-weight:800;margin-bottom:6px;">Station not available</div>
+      <div style="opacity:0.75;font-size:13px;">${String(err)}</div>
+    `;
+  }
+})();
+  }
 
   // Force Search-this-area visibility after landing
   window.__FP_SEO_FORCE_SEARCH_AREA__ = true;
