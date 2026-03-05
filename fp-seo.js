@@ -1,17 +1,29 @@
 (function () {
   "use strict";
 
-  const path = (location.pathname || "").toLowerCase();
-  // NEW: station route parsing
-  const stationMatch = path.match(/^\/station\/([a-z0-9]{20,})\/?$/);
-  const stationIdFromPath = stationMatch ? stationMatch[1] : null;
+  const rawPath = (location.pathname || "");
+  const path = rawPath.toLowerCase();
+
+  // --- Station route parsing (/station/<node_id OR slug>) ---
+  const stationMatch = rawPath.match(/^\/station\/([^\/\?]+)\/?$/i);
+  const stationKeyRaw = stationMatch ? stationMatch[1] : null;
+  const stationKey = stationKeyRaw ? decodeURIComponent(stationKeyRaw) : null;
+
+  // If it's an ID (your current node ids are long hex strings), treat it as id.
+  // Otherwise treat it as a pretty slug and look up the id in station-slugs.json.
+  const stationKeyLower = stationKey ? stationKey.toLowerCase() : null;
+  const stationKeyIsId = !!(stationKeyLower && /^[a-f0-9]{64}$/i.test(stationKeyLower));
+
+  // Back-compat: some code below still expects this name
+  let stationIdFromPath = stationKeyIsId ? stationKeyLower : null;
+
   const sp = new URLSearchParams(location.search || "");
 
   const hasSeoQuery = sp.get("fuel") && sp.get("place");
   const hasSeoPath  = /^\/fuel\/(petrol|diesel)\/[^\/\?]+\/?$/.test(path);
 
   // NEW: station pages
-  const hasStationPath = /^\/station\/[a-z0-9]{20,}\/?$/.test(path);
+  const hasStationPath = /^\/station\/[^\/\?]+\/?$/.test(path);
 
   // Any SEO page type?
   const isSeoPage = !!(hasSeoQuery || hasSeoPath || hasStationPath);
@@ -22,10 +34,52 @@
   window.__FP_SEO_MODE__ = true;
   document.body.classList.add("fp-seo-mode");
 
+  // --- Station slug map (cached) ---
+// We only use this when the route is /station/<slug> (not when it's already an ID).
+const __FP_STATION_SLUGS_URLS__ = [
+  "/data/station-slugs.json"
+];
+
+let __fpStationSlugsPromise = null;
+
+async function fpLoadStationSlugs() {
+  if (__fpStationSlugsPromise) return __fpStationSlugsPromise;
+
+  __fpStationSlugsPromise = (async () => {
+    let lastErr = null;
+
+    for (const url of __FP_STATION_SLUGS_URLS__) {
+      try {
+        const res = await fetch(url, { headers: { "accept": "application/json" } });
+        if (!res.ok) { lastErr = new Error(`Slug map fetch failed ${res.status} at ${url}`); continue; }
+
+        const json = await res.json();
+        // Expecting: { "<pretty-slug>": "<node_id>", ... }
+        if (json && typeof json === "object") return json;
+
+        lastErr = new Error(`Slug map JSON invalid at ${url}`);
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+
+    throw lastErr || new Error("Slug map fetch failed");
+  })();
+
+  return __fpStationSlugsPromise;
+}
+
+async function fpResolveStationSlugToId(slug) {
+  const map = await fpLoadStationSlugs();
+  const key = (slug || "").toLowerCase();
+  return map[key] || null;
+}
+
   // NEW: simple station-page placeholder (safe, removable)
-  if (stationIdFromPath) {
+  if (stationKey) {
     let box = document.getElementById("fpStationSeoBox");
-    if (!box) {
+    // NEW: simple station-page placeholder (safe, removable)
+      if (stationKey) {
       box = document.createElement("div");
       box.id = "fpStationSeoBox";
       box.style.cssText = `
@@ -49,24 +103,38 @@ box.innerHTML = `
     Loading station…
   </div>
   <div style="opacity:0.75;font-size:12px;">
-    ID: <span style="font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;">${stationIdFromPath}</span>
+    ID: <span style="font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;">${stationKey}</span>
   </div>
 `;
 
 // Fetch station data from your existing API endpoint
 (async () => {
   try {
-    const apiUrl = `https://fuelpilot-api.jonmargree.workers.dev/api/fuel/station?id=${encodeURIComponent(stationIdFromPath)}`;
-    const res = await fetch(apiUrl, { headers: { "accept": "application/json" } });
+    // Resolve /station/<slug> to node_id using /data/station-slugs.json
+     stationIdFromPath = stationKeyIsId
+      ? stationKeyLower
+      : await fpResolveStationSlugToId(stationKeyLower);
 
-    if (!res.ok) {
+    if (!stationIdFromPath) {
       box.innerHTML = `
-        <div style="font-weight:800;margin-bottom:6px;">Station not available</div>
-        <div style="opacity:0.75;font-size:13px;">API error: ${res.status}</div>
+        <div style="font-weight:800;margin-bottom:6px;">Station not found</div>
+        <div style="opacity:0.75;font-size:13px;">Unknown station slug: ${stationKey}</div>
       `;
       return;
     }
 
+    // (Optional) show the resolved ID in the box while loading
+    box.innerHTML = `
+      <div style="font-weight:800;letter-spacing:-0.02em;margin-bottom:6px;">
+        Loading station…
+      </div>
+      <div style="opacity:0.75;font-size:12px;">
+        ID: <span style="font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;">${stationIdFromPath}</span>
+      </div>
+    `;
+
+    const apiUrl = `https://fuelpilot-api.jonmargree.workers.dev/api/fuel/station?id=${encodeURIComponent(stationIdFromPath)}`;
+    const res = await fetch(apiUrl);
     const data = await res.json();
     const s = data?.station || data; // supports either {station:{}} or direct station
     const meta = s?.meta || {};
