@@ -222,9 +222,10 @@
           var sp = new URLSearchParams(location.search || "");
 
           var hasQuerySeo = (sp.get("fuel") && sp.get("place"));
-          var hasPathSeo = /^\/fuel\/(petrol|diesel)\/[^\/]+\/?$/.test(path);
+          var hasFuelSeoPath = /^\/fuel\/(petrol|diesel)\/[^\/\?]+\/?$/.test(path);
+          var hasStationPath = path.indexOf("/station/") === 0;
 
-          if (hasQuerySeo || hasPathSeo) {
+          if (hasQuerySeo || hasFuelSeoPath || hasStationPath) {
             window.__FP_SEO_MODE__ = true;
           }
         })();
