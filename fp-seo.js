@@ -71,6 +71,80 @@ box.innerHTML = `
     const s = data?.station || data; // supports either {station:{}} or direct station
     const meta = s?.meta || {};
     const loc = meta?.location || {};
+
+    // phone / opening / amenities (from meta)
+    const phone =
+      (meta?.public_phone_number || s?.public_phone_number || "").toString().trim();
+
+    const usualDays = meta?.opening_times?.usual_days || null;
+    const amenities = Array.isArray(meta?.amenities) ? meta.amenities : [];
+
+    function prettifyAmenity(a) {
+      const map = {
+        adblue_packaged: "AdBlue",
+        customer_toilets: "Toilets",
+        water_filling: "Water",
+      };
+      const raw = (a || "").toString().trim();
+      if (!raw) return "";
+      if (map[raw]) return map[raw];
+      // fallback: "car_wash" -> "Car wash"
+      return raw
+        .replace(/_/g, " ")
+        .toLowerCase()
+        .replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+    }
+
+    function formatDayHours(dayObj) {
+      if (!dayObj) return "—";
+      if (dayObj.is_24_hours) return "Open 24h";
+      const o = (dayObj.open || "").slice(0, 5);
+      const c = (dayObj.close || "").slice(0, 5);
+      if (!o || !c || (o === "00:00" && c === "00:00")) return "—";
+      return `${o}–${c}`;
+    }
+
+      function to24h(v) {
+        const s = (v || "").toString().slice(0, 5);
+        return /^\d{2}:\d{2}$/.test(s) ? s : "";
+      }
+
+      function buildOpeningHoursSpec(usualDays) {
+        if (!usualDays) return [];
+        const map = [
+          ["Monday", "monday"],
+          ["Tuesday", "tuesday"],
+          ["Wednesday", "wednesday"],
+          ["Thursday", "thursday"],
+          ["Friday", "friday"],
+          ["Saturday", "saturday"],
+          ["Sunday", "sunday"],
+        ];
+
+        const out = [];
+
+        for (const [label, key] of map) {
+          const d = usualDays[key];
+          if (!d) continue;
+          if (d.is_24_hours) {
+            out.push(`${label} 00:00-23:59`);
+            continue;
+          }
+          const o = to24h(d.open);
+          const c = to24h(d.close);
+          if (!o || !c) continue;
+          if (o === "00:00" && c === "00:00") continue;
+          out.push(`${label} ${o}-${c}`);
+        }
+
+        return out;
+      }
+
+      function safeJson(obj) {
+        return JSON.stringify(obj).replace(/</g, "\\u003c");
+      }
+
+
     const brand = (meta?.brand_name || "").toString().trim() || "Fuel station";
     const name = (meta?.trading_name || s?.trading_name || "").toString().trim();
     const town = (loc?.city || "").toString().trim();
@@ -194,8 +268,156 @@ box.innerHTML = `
       }
     } 
 
+    const phoneLine = phone
+      ? `<div style="opacity:0.85;font-size:13px; margin-top:6px;">Phone: <a href="tel:${phone.replace(/\s+/g, "")}" style="color:#e9eef5;text-decoration:none;font-weight:700;">${phone}</a></div>`
+      : "";
+
+    const openingHtml = usualDays
+      ? (() => {
+          const days = [
+            ["Mon", "monday"],
+            ["Tue", "tuesday"],
+            ["Wed", "wednesday"],
+            ["Thu", "thursday"],
+            ["Fri", "friday"],
+            ["Sat", "saturday"],
+            ["Sun", "sunday"],
+          ];
+          const rows = days
+            .map(([label, key]) => {
+              const v = formatDayHours(usualDays[key]);
+              return `<div style="display:flex;justify-content:space-between;gap:12px;">
+                        <span style="opacity:0.75">${label}</span>
+                        <span style="font-weight:700">${v}</span>
+                      </div>`;
+            })
+            .join("");
+          return `
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.10);">
+              <div style="font-weight:800;margin-bottom:8px;">Opening hours</div>
+              <div style="display:grid;gap:6px;font-size:13px;">${rows}</div>
+            </div>
+          `;
+        })()
+      : "";
+
+    const amenitiesHtml = amenities.length
+      ? (() => {
+          const chips = amenities
+            .map(prettifyAmenity)
+            .filter(Boolean)
+            .slice(0, 12)
+            .map(
+              (t) =>
+                `<span style="display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);font-size:12px;opacity:0.95;">${t}</span>`
+            )
+            .join("");
+          return `
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.10);">
+              <div style="font-weight:800;margin-bottom:8px;">Facilities</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;">${chips}</div>
+            </div>
+          `;
+        })()
+      : "";
+
+        const stationUrl = `https://fuelpilot.co.uk/station/${encodeURIComponent(
+          stationIdFromPath
+        )}`;
+
+        const openingHoursSpec = buildOpeningHoursSpec(usualDays);
+
+        const jsonLd = {
+          "@context": "https://schema.org",
+          "@type": "GasStation",
+          "@id": stationUrl,
+          name: `${brand}${town ? ` ${town}` : ""}`.trim() || name || "Fuel station",
+
+          brand: brand
+            ? {
+                "@type": "Brand",
+                name: brand
+              }
+            : undefined,
+
+
+
+
+
+
+          telephone: phone || undefined,
+          url: stationUrl,
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: [line1, (loc?.address_line_2 || "").toString().trim()]
+              .filter(Boolean)
+              .join(", "),
+            addressLocality: town || undefined,
+            postalCode: postcode || undefined,
+            addressCountry: (loc?.country || "").toString().trim() || "GB",
+          },
+          geo:
+            typeof loc?.latitude === "number" && typeof loc?.longitude === "number"
+              ? {
+                  "@type": "GeoCoordinates",
+                  latitude: loc.latitude,
+                  longitude: loc.longitude,
+                }
+              : undefined,
+          openingHoursSpecification:
+            openingHoursSpec.length > 0 ? openingHoursSpec : undefined,
+
+
+            amenityFeature: amenities.length
+              ? amenities.map(a => ({
+                  "@type": "LocationFeatureSpecification",
+                  name: prettifyAmenity(a),
+                  value: true
+                }))
+              : undefined,
+
+
+            makesOffer: prices.length
+            ? prices.map(p => ({
+                "@type": "Offer",
+                price: String(p.price),
+                priceCurrency: "GBP",
+                name: p.fuel_type
+              }))
+            : undefined,
+
+
+        };
+
+
+
     box.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      
+    <style>
+
+        .fp-nearby-list {
+          display:block;
+        }
+
+        @media (max-width:720px){
+          .fp-nearby-list {
+            max-height:220px;
+            overflow:auto;
+          }
+        }
+
+      /* Station card mobile layout */
+      @media (max-width: 720px) {
+        .fp-st-head { flex-direction: column; align-items: flex-start !important; }
+        .fp-st-cta { width: 100%; justify-content: flex-start !important; flex-wrap: wrap; }
+        .fp-st-cta a { width: auto; }
+        .fp-st-grid { grid-template-columns: 1fr !important; }
+      }
+    </style>
+
+    <script id="fp-jsonld-gasstation" type="application/ld+json">${safeJson(jsonLd)}</script>
+
+    <div class="fp-st-head" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
         <div>
           <div style="font-weight:900;letter-spacing:-0.02em;line-height:1.15;">
             ${brand}${town ? ` in ${town}` : ""}
@@ -204,14 +426,26 @@ box.innerHTML = `
             ${name ? `${name}<br>` : ""}
             ${line1 ? `${line1}<br>` : ""}
             ${postcode ? postcode : ""}
+            ${phoneLine}
+            ${openingHtml}
+            ${amenitiesHtml}
           </div>
         </div>
+      <div class="fp-st-cta" style="display:flex;align-items:center;gap:10px;flex-shrink:0;justify-content:flex-end;">
+        <a href="/for-forecourts?station=${encodeURIComponent(stationIdFromPath)}"
+          style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+                  padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,0.18);
+                  background:rgba(255,255,255,0.12);color:#e9eef5;font-weight:800;">
+          Claim this station
+        </a>
+
         <a href="/?station=${encodeURIComponent(stationIdFromPath)}"
-           style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+          style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;
                   padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,0.14);
                   background:rgba(255,255,255,0.06);color:#e9eef5;font-weight:700;">
           Back to map
         </a>
+      </div>
       </div>
 
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.10);">
@@ -219,21 +453,15 @@ box.innerHTML = `
         ${priceLines || `<div style="opacity:0.7;font-size:13px;">No prices available.</div>`}
       </div>
 
-      <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.10);">
-        <div style="font-weight:800;margin-bottom:8px;">Closest 20 stations</div>
-        <div>
+      <div style="margin-top:24px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);opacity:0.85;">
+        <div style="font-weight:700;margin-bottom:8px;font-size:14px;opacity:0.8;">
+          Other nearby fuel stations
+        <div class="fp-nearby-list">
           ${nearbyHtml}
         </div>
       </div>
 
-      <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.10);">
-        <a href="/for-forecourts?station=${encodeURIComponent(stationIdFromPath)}"
-           style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;
-                  padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,0.14);
-                  background:rgba(255,255,255,0.06);color:#e9eef5;font-weight:700;">
-          Claim this station
-        </a>
-      </div>
+
     `;
   } catch (err) {
     box.innerHTML = `
