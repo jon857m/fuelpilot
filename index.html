@@ -221,12 +221,13 @@
           var path = (location.pathname || "").toLowerCase();
           var sp = new URLSearchParams(location.search || "");
 
-          var hasQuerySeo = (sp.get("fuel") && sp.get("place"));
-          var hasPathSeo = /^\/fuel\/(petrol|diesel)\/[^\/]+\/?$/.test(path);
+      var hasQuerySeo = (sp.get("fuel") && sp.get("place"));
+      var hasPathSeo = /^\/fuel\/(petrol|diesel)\/[^\/]+\/?$/.test(path);
+      var hasStationPath = path.startsWith("/station/");
 
-          if (hasQuerySeo || hasPathSeo) {
-            window.__FP_SEO_MODE__ = true;
-          }
+      if (hasQuerySeo || hasPathSeo || hasStationPath) {
+        window.__FP_SEO_MODE__ = true;
+      }
         })();
       </script>
 
