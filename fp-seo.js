@@ -144,6 +144,31 @@ box.innerHTML = `
     const phone =
       (meta?.public_phone_number || s?.public_phone_number || "").toString().trim();
 
+          // Exact station detail handoff for the map app
+    window.__FP_STATION_DETAIL__ = {
+      id: String(stationKeyLower || "").trim(),
+      nodeId: String(stationIdFromPath || "").trim(),
+      name: (meta?.trading_name || s?.trading_name || meta?.brand_name || "Fuel station").toString().trim(),
+      brand: (meta?.brand_name || "").toString().trim(),
+      addressShort: [
+        (loc?.address_line_1 || "").toString().trim(),
+        (loc?.postcode || "").toString().trim()
+      ].filter(Boolean).join(", "),
+      postcode: (loc?.postcode || "").toString().trim(),
+      lat: Number(loc?.latitude),
+      lng: Number(loc?.longitude),
+      fuel_prices: Array.isArray(s?.fuel_prices) ? s.fuel_prices : [],
+      raw: s
+    };
+
+    console.log("[Station SEO] published exact station detail:", window.__FP_STATION_DETAIL__);
+
+    window.dispatchEvent(
+      new CustomEvent("fp:station-detail-ready", {
+        detail: window.__FP_STATION_DETAIL__
+      })
+    );
+
     const usualDays = meta?.opening_times?.usual_days || null;
     const amenities = Array.isArray(meta?.amenities) ? meta.amenities : [];
 

@@ -1017,6 +1017,51 @@ return `
   }
 }
 
+    function attachSeoStationDetail(detail, opts) {
+      if (!detail) return false;
+
+      const lat = Number(detail.lat);
+      const lng = Number(detail.lng);
+
+      const exact = {
+        _id: String(detail.id || detail.nodeId || "station-detail"),
+        id: String(detail.id || detail.nodeId || "station-detail"),
+        name: detail.name || detail.brand || "Fuel station",
+        brand: detail.brand || "",
+        addressShort: detail.addressShort || "",
+        postcode: detail.postcode || "",
+        lat,
+        lng,
+        price: null,
+        _priceNum: null,
+        badges: []
+      };
+
+      const prices = Array.isArray(detail.fuel_prices) ? detail.fuel_prices : [];
+      const fuel = readLS(LS.fuel, "E10");
+      const matched = prices.find(
+        (p) => String(p?.fuel_type || "").toUpperCase() === String(fuel).toUpperCase()
+      );
+
+      if (matched && matched.price != null && isFinite(Number(matched.price))) {
+        exact.price = Number(matched.price);
+        exact._priceNum = Number(matched.price);
+      }
+
+      activeMarkerId = exact._id;
+      setActiveFlag(null);
+      renderSelectedCard(exact);
+
+      const shouldOpen = !opts || opts.openDrawer !== false;
+      if (shouldOpen) openDrawer();
+
+      if ((opts && opts.pan) !== false && isFinite(lat) && isFinite(lng) && map) {
+        map.setView([lat, lng], Math.max(map.getZoom() || 12, 15), { animate: false });
+      }
+
+      return true;
+    }
+
   function selectStation(id, opts) {
     const st = stations.find((s) => s._id === id);
     if (!st) return;
@@ -1097,7 +1142,10 @@ return `
 
 
   // Auto-pick first station (prefer priced)
-  if (stations.length) {
+  // Station pages: keep the exact station as the authoritative selected card.
+  if (window.__FP_STATION_DETAIL__) {
+    attachSeoStationDetail(window.__FP_STATION_DETAIL__, { openDrawer: false, pan: false });
+  } else if (stations.length) {
     const pick = stations.find(s => s._priceNum != null) || stations[0];
     if (pick && pick._id) selectStation(pick._id, { openDrawer: false, pan: false });
   } else {
@@ -1401,6 +1449,37 @@ return `
   function cssEscape(str) {
     return String(str).replaceAll('"', '\\"');
   }
+
+  window.addEventListener("fp:station-detail-ready", async (ev) => {
+    const detail = ev && ev.detail ? ev.detail : window.__FP_STATION_DETAIL__;
+    if (!detail) return;
+
+    try {
+      const lat = Number(detail.lat);
+      const lng = Number(detail.lng);
+      if (!isFinite(lat) || !isFinite(lng)) return;
+
+           // Show the exact station card immediately
+      attachSeoStationDetail(detail, { openDrawer: true, pan: true });
+
+      // Centre on the exact station first
+      if (map && isFinite(Number(detail.lat)) && isFinite(Number(detail.lng))) {
+        map.setView([Number(detail.lat), Number(detail.lng)], 15, { animate: false });
+      }
+
+      // Let the layout settle, then force Leaflet to recalc size
+      invalidateMapSoon();
+      await new Promise((r) => setTimeout(r, 300));
+
+      // Use the SAME viewport search as the floating button
+      await runSearchAreaViewport();
+
+      // Re-assert the exact station card after nearby results render
+      attachSeoStationDetail(detail, { openDrawer: true, pan: false });
+    } catch (err) {
+      console.warn("[FuelPilot] station-detail-ready attach failed:", err);
+    }
+  });
 
   document.addEventListener("DOMContentLoaded", init);
 
