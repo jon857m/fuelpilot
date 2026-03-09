@@ -189,6 +189,8 @@ function invalidateMapSoon() {
     regionSelect: $("fpRegionSelect"),
     fuelSelect: $("fpFuelSelect"),
     myLocBtn: $("fpMyLocationBtn"),
+    shareBtn: $("fpShareBtn"),
+    shareToast: $("fpShareToast"),
     refreshBtn: $("fpRefreshBtn"),
     sortBtn: $("fpSortBtn"),
     sortLabel: $("fpSortLabel"),
@@ -212,6 +214,121 @@ function invalidateMapSoon() {
 
   function setStatus(text) {
     if (els.status) els.status.textContent = text;
+  }
+
+    function showShareToast(message) {
+    if (!els.shareToast) return;
+
+    els.shareToast.textContent = message;
+    els.shareToast.hidden = false;
+    els.shareToast.classList.add("is-visible");
+
+    clearTimeout(showShareToast._t);
+    showShareToast._t = setTimeout(() => {
+      if (!els.shareToast) return;
+      els.shareToast.classList.remove("is-visible");
+      setTimeout(() => {
+        if (els.shareToast) els.shareToast.hidden = true;
+      }, 180);
+    }, 1800);
+  }
+
+  function getShareFuelParam() {
+    const v = String((els.fuelSelect && els.fuelSelect.value) || readLS(LS.fuel, "E10")).toUpperCase();
+    return v;
+  }
+
+  function getShareUrl() {
+    if (!map || typeof map.getCenter !== "function") return window.location.href;
+
+    const center = map.getCenter();
+    const zoom = typeof map.getZoom === "function" ? map.getZoom() : 12;
+
+    const url = new URL(window.location.href);
+
+    url.searchParams.set("lat", Number(center.lat).toFixed(5));
+    url.searchParams.set("lng", Number(center.lng).toFixed(5));
+    url.searchParams.set("zoom", String(zoom));
+    url.searchParams.set("fuel", getShareFuelParam());
+
+    return url.toString();
+  }
+
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "absolute";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+
+    try {
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      return true;
+    } catch (e) {
+      document.body.removeChild(ta);
+      return false;
+    }
+  }
+
+    async function handleShareMap() {
+      const shareUrl = getShareUrl();
+      const shareData = {
+        title: "FuelPilot",
+        url: shareUrl
+      };
+
+      const isLocalHost =
+        location.hostname === "127.0.0.1" ||
+        location.hostname === "localhost";
+
+      try {
+        if (navigator.share && !isLocalHost) {
+          await navigator.share(shareData);
+          return;
+        }
+
+        const copied = await copyText(shareUrl);
+        showShareToast(copied ? "Link copied" : "Unable to copy link");
+      } catch (err) {
+        if (err && err.name === "AbortError") return;
+
+        const copied = await copyText(shareUrl);
+        showShareToast(copied ? "Link copied" : "Unable to copy link");
+      }
+    }
+
+  function applySharedMapStateFromUrl() {
+    const params = new URLSearchParams(window.location.search || "");
+
+    const lat = parseFloat(params.get("lat"));
+    const lng = parseFloat(params.get("lng"));
+    const zoom = parseInt(params.get("zoom"), 10);
+    const fuel = (params.get("fuel") || "").toUpperCase();
+
+    const hasCoords = isFinite(lat) && isFinite(lng);
+
+    if (hasCoords && map) {
+      map.setView([lat, lng], isFinite(zoom) ? zoom : 12);
+      invalidateMapSoon();
+    }
+
+    if (fuel && els.fuelSelect) {
+      const valid = Array.from(els.fuelSelect.options).some((o) => String(o.value).toUpperCase() === fuel);
+      if (valid) {
+        els.fuelSelect.value = fuel;
+        writeLS(LS.fuel, fuel);
+      }
+    }
+
+    return hasCoords;
   }
 
 // -----------------------------
@@ -588,8 +705,11 @@ cluster = L.markerClusterGroup({
     map.addLayer(cluster);
 
     const savedMap = readJSONLS(LS.map, null);
+    const appliedSharedState = applySharedMapStateFromUrl();
 
-    if (!window.__FP_SEO_MODE__ && savedMap && isFinite(savedMap.lat) && isFinite(savedMap.lng) && isFinite(savedMap.zoom)) {
+    if (appliedSharedState) {
+      setStatus("Shared map view");
+    } else if (!window.__FP_SEO_MODE__ && savedMap && isFinite(savedMap.lat) && isFinite(savedMap.lng) && isFinite(savedMap.zoom)) {
       map.setView([savedMap.lat, savedMap.lng], savedMap.zoom);
       invalidateMapSoon();
       setStatus("Restored last map");
@@ -1340,6 +1460,8 @@ return `
     }
 
     if (els.myLocBtn) els.myLocBtn.addEventListener("click", useMyLocation);
+
+      els.shareBtn?.addEventListener("click", handleShareMap);
 
     if (els.refreshBtn) {
       els.refreshBtn.addEventListener("click", async () => {

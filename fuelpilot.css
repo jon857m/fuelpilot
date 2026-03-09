@@ -1959,3 +1959,92 @@ body.fp-seo-mode #fpSeo{
 .fp-seo-links a:hover{
   background: rgba(255,255,255,0.10);
 }
+
+/* ==========================
+   Share button + toast
+   Reuses existing icon button language
+   ========================== */
+
+.fp-share-btn{
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+
+  padding: 0 !important;
+  border-radius: 14px !important;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.fp-share-btn:active{
+  transform: scale(0.94);
+  background: rgba(255,255,255,0.10) !important;
+  border-color: rgba(255,255,255,0.20) !important;
+}
+
+.fp-share-ico{
+  width: 18px;
+  height: 18px;
+  display: block;
+  opacity: 0.92;
+}
+
+.fp-controls.is-searching #fpShareBtn{
+  opacity: 0.78;
+  pointer-events: none;
+}
+
+.fp-share-toast{
+  align-self: center;
+
+  padding: 10px 14px;
+  border-radius: 999px;
+
+  background: rgba(16,18,24,0.88);
+  color: rgba(255,255,255,0.96);
+
+  border: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+
+  font-size: 13px;
+  line-height: 1;
+
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+  pointer-events: none;
+
+  transition: opacity 160ms ease-out, transform 180ms ease-out;
+}
+
+.fp-share-toast.is-visible{
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+@media (min-width: 900px){
+  .fp-share-toast{
+    position: fixed;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%) translateY(8px) scale(0.98);
+    align-self: auto;
+    z-index: 1001;
+  }
+
+  .fp-share-toast.is-visible{
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}

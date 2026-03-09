@@ -155,6 +155,12 @@
             <button class="fp-icon-btn fp-loc-btn" id="fpMyLocationBtn" type="button" aria-label="My location">
               <span class="fp-loc-ico" aria-hidden="true"></span>
             </button>
+            
+            <button class="fp-icon-btn fp-share-btn" id="fpShareBtn" type="button" aria-label="Share this map view" title="Share this area">
+              <svg class="fp-share-ico" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 5h4v4M10 14l9-9M19 13v4a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
 
           </div>
 
@@ -170,6 +176,9 @@
         </section>
 
         <button id="fpSearchAreaBtn" class="fp-fab" type="button">Search this area</button>
+
+        <div id="fpShareToast" class="fp-share-toast" aria-live="polite" hidden></div>
+
       </div>
 
       <!-- Legend popover -->
