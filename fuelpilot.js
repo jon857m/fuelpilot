@@ -238,21 +238,24 @@ function invalidateMapSoon() {
     return v;
   }
 
-  function getShareUrl() {
-    if (!map || typeof map.getCenter !== "function") return window.location.href;
+    function getShareUrl() {
+      if (!map || typeof map.getCenter !== "function") {
+        return new URL("/", window.location.origin).toString();
+      }
 
-    const center = map.getCenter();
-    const zoom = typeof map.getZoom === "function" ? map.getZoom() : 12;
+      const center = map.getCenter();
+      const zoom = typeof map.getZoom === "function" ? map.getZoom() : 12;
 
-    const url = new URL(window.location.href);
+      // Always share the clean root map URL, never the current SEO/station path
+      const url = new URL("/", window.location.origin);
 
-    url.searchParams.set("lat", Number(center.lat).toFixed(5));
-    url.searchParams.set("lng", Number(center.lng).toFixed(5));
-    url.searchParams.set("zoom", String(zoom));
-    url.searchParams.set("fuel", getShareFuelParam());
+      url.searchParams.set("lat", Number(center.lat).toFixed(5));
+      url.searchParams.set("lng", Number(center.lng).toFixed(5));
+      url.searchParams.set("zoom", String(zoom));
+      url.searchParams.set("fuel", getShareFuelParam());
 
-    return url.toString();
-  }
+      return url.toString();
+    }
 
   async function copyText(text) {
     if (navigator.clipboard && window.isSecureContext) {
