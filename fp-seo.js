@@ -103,10 +103,20 @@ async function fpResolveStationSlugToId(slug) {
             margin: 20px auto 22px;
             padding: 14px 16px;
             border-radius: 18px;
-            border: 1px solid rgba(255,255,255,0.10);
-            background: rgba(10,12,16,0.58);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: linear-gradient(
+              180deg,
+              rgba(32,36,42,0.82) 0%,
+              rgba(18,20,24,0.92) 100%
+            );
+
+            border: 1px solid rgba(255,255,255,0.08);
+
+            box-shadow:
+              0 12px 30px rgba(0,0,0,0.35),
+              inset 0 1px 0 rgba(255,255,255,0.06);
+
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             color: #e9eef5;
             box-sizing: border-box;
           `
@@ -597,10 +607,17 @@ box.innerHTML = `
         margin: 18px auto 0;
         padding: 14px 16px;
         border-radius: 18px;
-        border: 1px solid rgba(255,255,255,0.10);
-        background: rgba(10,12,16,0.58);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.08);
+        background: linear-gradient(
+          180deg,
+          rgba(32,36,42,0.82) 0%,
+          rgba(18,20,24,0.92) 100%
+        );
+        box-shadow:
+          0 12px 30px rgba(0,0,0,0.35),
+          inset 0 1px 0 rgba(255,255,255,0.06);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
         color: #e9eef5;
         box-sizing: border-box;
       `;
