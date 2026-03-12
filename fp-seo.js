@@ -214,6 +214,8 @@ box.innerHTML = `
       })
     );
 
+       renderStationSeo(window.__FP_STATION_DETAIL__);
+
     const usualDays = meta?.opening_times?.usual_days || null;
     const amenities = Array.isArray(meta?.amenities) ? meta.amenities : [];
 
@@ -812,9 +814,13 @@ async function loadPlaces() {
 
     // If it has a comma, base is the part before it
     const base = name.split(",")[0].trim();
+    const cleanedBase = base
+    .replace(/^NR\s+/i, "")
+    .replace(/^NEAR\s+/i, "")
+    .trim();
 
-    // If no name, fall back to slug
-    const raw = base || String((p && p.slug) || "").trim();
+// If no name, fall back to slug
+const raw = cleanedBase || String((p && p.slug) || "").trim();
 
     // Normalize: uppercase + collapse spaces/punct
     return raw
@@ -836,6 +842,198 @@ async function loadPlaces() {
       return 1;                             // counties / admin areas
     }
 
+      function getSeoEls() {
+    const section = document.getElementById("fpSeo");
+    const h1 = document.getElementById("fpSeoH1");
+    const intro = document.getElementById("fpSeoIntro");
+    const stats = document.getElementById("fpSeoStats");
+    const body = document.getElementById("fpSeoBody");
+
+    if (!section || !h1 || !intro || !stats || !body) return null;
+
+    return { section, h1, intro, stats, body };
+  }
+
+  function renderSeoScaffold(opts) {
+    const els = getSeoEls();
+    if (!els) return null;
+
+    const {
+      heading = "Fuel prices",
+      introText = "",
+      statItems = []
+    } = opts || {};
+
+    els.h1.textContent = heading;
+    els.intro.textContent = introText;
+
+    els.stats.innerHTML = Array.isArray(statItems)
+      ? statItems.map((txt) => `<div>${txt}</div>`).join("")
+      : "";
+
+    els.body.innerHTML = "";
+
+    return els;
+  }
+
+
+    function renderStationSeo(detail) {
+    if (!detail) return;
+
+    const lat = Number(detail.lat);
+    const lng = Number(detail.lng);
+    if (!isFinite(lat) || !isFinite(lng)) return;
+
+    fpLoadPlaces().then((places) => {
+      if (!Array.isArray(places) || !places.length) return;
+
+      let currentPlace = null;
+      let bestKm = Infinity;
+
+      for (const p of places) {
+        if (!p || !p.slug) continue;
+
+        const pLat = Number(p.lat);
+        const pLng = Number(p.lng);
+        if (!isFinite(pLat) || !isFinite(pLng)) continue;
+
+        const km = fpKmBetween(lat, lng, pLat, pLng);
+        if (km < bestKm) {
+          bestKm = km;
+          currentPlace = p;
+        }
+      }
+
+      if (!currentPlace) return;
+
+      const fuelLabel = "petrol";
+      const fuelTitle = "Petrol";
+      const placeLabel = (currentPlace.name || currentPlace.slug || "nearby").split(",")[0].trim();
+
+      const els = renderSeoScaffold({
+        heading: `Cheap ${fuelTitle} in ${placeLabel} and nearby`,
+        introText: `Live ${fuelTitle} prices around ${placeLabel}. Pan the map and use “Search this area” to refresh nearby stations.`,
+        statItems: ["Map-first", "Compare nearby areas", "Fast to use"]
+      });
+
+      const body = els && els.body;
+      if (!body) return;
+
+      body.innerHTML = `
+        <p>FuelPilot shows <strong>${fuelLabel}</strong> prices on a live map for <strong>${placeLabel}</strong> and nearby areas.</p>
+        <p>Pan or zoom, then tap <strong>Search this area</strong> to refresh results for what’s on screen.</p>
+
+        <p><strong>${fuelTitle} near ${placeLabel}</strong>: compare nearby forecourts and find cheaper prices.</p>
+        <p>View <strong>${fuelTitle} stations in ${placeLabel}</strong> and check today’s updates.</p>
+        <p>See <strong>${fuelTitle} prices in ${placeLabel}</strong> compared with nearby areas.</p>
+      `;
+
+      const currentSlug = currentPlace.slug || "";
+      const aLat = Number(currentPlace.lat);
+      const aLng = Number(currentPlace.lng);
+
+      let candidates = places.filter((p) => {
+        if (!p || !p.slug || p.slug === currentSlug) return false;
+        const pLat = Number(p.lat);
+        const pLng = Number(p.lng);
+        return isFinite(pLat) && isFinite(pLng);
+      });
+
+      if (isFinite(aLat) && isFinite(aLng)) {
+        candidates.sort((p1, p2) => {
+          const d1 = fpKmBetween(aLat, aLng, Number(p1.lat), Number(p1.lng));
+          const d2 = fpKmBetween(aLat, aLng, Number(p2.lat), Number(p2.lng));
+
+          if (d1 !== d2) return d1 - d2;
+          return fpTypeScore(p1) - fpTypeScore(p2);
+        });
+      } else {
+        candidates.sort((a, b) =>
+          String(a.name || "").localeCompare(String(b.name || ""))
+        );
+      }
+
+      const cluster = [];
+      const seen = new Set();
+      const currentBase = currentPlace ? fpPlaceBaseKey(currentPlace) : null;
+
+      function pushFrom(list) {
+        for (const p of list) {
+          if (!p) continue;
+
+          const base = fpPlaceBaseKey(p);
+
+          if (currentBase && base === currentBase) continue;
+          if (FP_SEO_BLOCKED_BASES.has(base)) continue;
+          if (seen.has(base)) continue;
+
+          cluster.push(p);
+          seen.add(base);
+
+          if (cluster.length === 8) return true;
+        }
+        return false;
+      }
+
+      const isTownPage =
+        currentPlace &&
+        String(currentPlace.type || "").toLowerCase().startsWith("town");
+
+      pushFrom(candidates.filter((p) => fpTypeScore(p) === 0));
+
+      if (cluster.length < 8) {
+        if (!isTownPage) {
+          pushFrom(candidates.filter((p) => fpTypeScore(p) !== 0));
+        }
+      }
+
+      let petrolLinks = "";
+      let dieselLinks = "";
+
+      for (const p of cluster) {
+        const slug = p.slug;
+        const name = p.name || slug;
+        const label = name
+        .split(",")[0]
+        .replace(/^NR\s+/i, "")
+        .replace(/^NEAR\s+/i, "")
+        .trim();
+
+        const petrolHref = "/fuel/petrol/" + encodeURIComponent(slug) + "/";
+        const dieselHref = "/fuel/diesel/" + encodeURIComponent(slug) + "/";
+
+        petrolLinks += `<a href="${petrolHref}" data-fp-href="${petrolHref}">${label}</a> `;
+        dieselLinks += `<a href="${dieselHref}" data-fp-href="${dieselHref}">${label}</a> `;
+      }
+
+      body.insertAdjacentHTML(
+        "beforeend",
+        `
+          <div class="fp-seo-cluster">
+            <h3>Nearby petrol pages</h3>
+            <div class="fp-seo-links">${petrolLinks}</div>
+
+            <h3 style="margin-top:14px;">Nearby diesel pages</h3>
+            <div class="fp-seo-links">${dieselLinks}</div>
+          </div>
+        `
+      );
+
+      const clusterEl = body.querySelector(".fp-seo-cluster:last-of-type");
+      if (clusterEl) {
+        clusterEl.addEventListener("click", (ev) => {
+          const a = ev.target && ev.target.closest ? ev.target.closest("a[data-fp-href]") : null;
+          if (!a) return;
+          ev.preventDefault();
+          fpSeoNavigate(a.getAttribute("data-fp-href"));
+        });
+      }
+    }).catch((e) => {
+      console.warn("[Station SEO] renderStationSeo failed", e);
+    });
+  }
+
+
   function renderSeo(route) {
     const fuelLabel = route.fuel === "diesel" ? "diesel" : "petrol";
     const placeLabel = route.name;
@@ -846,22 +1044,13 @@ async function loadPlaces() {
    .catch((e) => console.warn("[SEO] places load error:", e));
 
     // ✅ SAFE: only set if nodes exist (no crashes)
-    const h1 = document.getElementById("fpSeoH1");
-    if (h1) h1.textContent = `Cheap ${fuelTitle} in ${placeLabel} and nearby`;
+    const els = renderSeoScaffold({
+      heading: `Cheap ${fuelTitle} in ${placeLabel} and nearby`,
+      introText: `Live ${fuelTitle} prices around ${placeLabel}. Pan the map and use “Search this area” to refresh nearby stations.`,
+      statItems: ["Map-first", "Compare nearby areas", "Fast to use"]
+    });
 
-    const intro = document.getElementById("fpSeoIntro");
-    if (intro) intro.textContent = `Live ${fuelTitle} prices around ${placeLabel}. Pan the map and use “Search this area” to refresh nearby stations.`;
-
-    const stats = document.getElementById("fpSeoStats");
-    if (stats) {
-      stats.innerHTML = `
-        <div class="fp-seo-stat">Map-first</div>
-        <div class="fp-seo-stat">Compare nearby areas</div>
-        <div class="fp-seo-stat">Fast to use</div>
-      `;
-    }
-
-    const body = document.getElementById("fpSeoBody");
+    const body = els && els.body;
     if (body) {
     body.innerHTML = `
       <p>FuelPilot shows <strong>${fuelLabel}</strong> prices on a live map for <strong>${placeLabel}</strong> and nearby areas.</p>
