@@ -34,6 +34,14 @@
   window.__FP_SEO_MODE__ = true;
   document.body.classList.add("fp-seo-mode");
 
+  // Robust station-page hook for layout styling
+  const __fpPath = (location.pathname || "").toLowerCase();
+  if (__fpPath.startsWith("/station/")) {
+    document.body.classList.add("fp-station-page");
+  } else {
+    document.body.classList.remove("fp-station-page");
+  }
+
   // --- Station slug map (cached) ---
 // We only use this when the route is /station/<slug> (not when it's already an ID).
 const __FP_STATION_SLUGS_URLS__ = [
@@ -76,26 +84,53 @@ async function fpResolveStationSlugToId(slug) {
 }
 
   // NEW: simple station-page placeholder (safe, removable)
+  // NEW: simple station-page placeholder (safe, removable)
   if (stationKey) {
     let box = document.getElementById("fpStationSeoBox");
-    // NEW: simple station-page placeholder (safe, removable)
-      if (stationKey) {
+
+    if (!box) {
       box = document.createElement("div");
       box.id = "fpStationSeoBox";
-      box.style.cssText = `
-        position: relative;
-        z-index: 5;
-        margin: 12px;
-        padding: 12px 14px;
-        border-radius: 14px;
-        border: 1px solid rgba(255,255,255,0.14);
-        background: rgba(0,0,0,0.35);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        color: #e9eef5;
-        max-width: 720px;
-      `;
-      document.body.prepend(box);
+
+      const isDesktopStationLayout = window.matchMedia("(min-width: 920px)").matches;
+
+      box.style.cssText = isDesktopStationLayout
+        ? `
+            position: relative;
+            z-index: 5;
+            width: calc(100% - 32px);
+            max-width: 1160px;
+            margin: 20px auto 22px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.10);
+            background: rgba(10,12,16,0.58);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: #e9eef5;
+            box-sizing: border-box;
+          `
+        : `
+            position: relative;
+            z-index: 5;
+            margin: 12px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.14);
+            background: rgba(0,0,0,0.35);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            color: #e9eef5;
+            max-width: 720px;
+            box-sizing: border-box;
+          `;
+
+      const app = document.querySelector(".fp-app");
+      if (app) {
+        app.prepend(box);
+      } else {
+        document.body.prepend(box);
+      }
     }
 
 box.innerHTML = `
@@ -546,21 +581,46 @@ box.innerHTML = `
         ${priceLines || `<div style="opacity:0.7;font-size:13px;">No prices available.</div>`}
       </div>
 
-      <div style="margin-top:24px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);opacity:0.85;">
-        <div style="font-weight:700;margin-bottom:8px;font-size:14px;opacity:0.8;">
-          Other nearby fuel stations
+
+    `;
+
+    let nearbyBlock = document.getElementById("fpStationNearbyBlock");
+
+      if (!nearbyBlock) {
+        nearbyBlock = document.createElement("div");
+        nearbyBlock.id = "fpStationNearbyBlock";
+      }
+
+      nearbyBlock.style.cssText = `
+        width: calc(100% - 32px);
+        max-width: 1160px;
+        margin: 18px auto 0;
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,0.10);
+        background: rgba(10,12,16,0.58);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        color: #e9eef5;
+        box-sizing: border-box;
+      `;
+
+      nearbyBlock.innerHTML = `
+        <div style="font-weight:800;margin-bottom:10px;">Other nearby fuel stations</div>
         <div class="fp-nearby-list">
-          ${nearbyHtml}
+          ${nearbyHtml || `<div style="opacity:0.7;font-size:13px;">No nearby stations found.</div>`}
         </div>
-      </div>
+      `;
 
-
-    `;
-  } catch (err) {
-    box.innerHTML = `
-      <div style="font-weight:800;margin-bottom:6px;">Station not available</div>
-      <div style="opacity:0.75;font-size:13px;">${String(err)}</div>
-    `;
+      const mapWrap = document.querySelector(".fp-map-wrap");
+      if (mapWrap && mapWrap.parentNode) {
+        mapWrap.insertAdjacentElement("afterend", nearbyBlock);
+      }
+    } catch (err) {
+      box.innerHTML = `
+        <div style="font-weight:800;margin-bottom:6px;">Station not available</div>
+        <div style="opacity:0.75;font-size:13px;">${String(err)}</div>
+      `;
   }
 })();
   }

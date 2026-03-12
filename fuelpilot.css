@@ -2048,3 +2048,132 @@ body.fp-seo-mode #fpSeo{
     transform: translateX(-50%) translateY(0) scale(1);
   }
 }
+
+/* ==========================
+   Station page layout refinement
+   Desktop only, safe first pass
+   ========================== */
+@media (min-width: 920px) {
+  body.fp-station-page.fp-seo-mode .fp-map-wrap {
+    position: relative;
+    top: auto;
+    height: auto;
+    min-height: 0;
+    padding: 20px 0 0;
+  }
+
+  body.fp-station-page.fp-seo-mode #fpMap {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    max-width: 1160px;
+    height: min(56vh, 680px);
+    margin: 0 auto;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  }
+
+  body.fp-station-page.fp-seo-mode .fp-ui-stack {
+    left: 50%;
+    right: auto;
+    width: min(1160px, calc(100% - 32px));
+    transform: translateX(-50%);
+  }
+
+  body.fp-station-page.fp-seo-mode .fp-drawer {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    width: min(1160px, calc(100% - 32px));
+    height: auto;
+    max-height: none;
+    margin: 16px auto 0;
+    border-radius: 24px;
+    transform: none;
+  }
+
+  body.fp-station-page.fp-seo-mode #fpSeo {
+    max-width: 1160px;
+    margin: 0 auto;
+  }
+}
+
+@media (min-width: 920px) {
+  body.fp-station-page.fp-seo-mode {
+    background:
+      linear-gradient(
+        180deg,
+      #f3f5f7 0 420px,
+      #0a0d12 420px 100%
+      );
+  }
+
+  body.fp-station-page.fp-seo-mode .fp-app {
+    background: transparent;
+  }
+
+  body.fp-station-page.fp-seo-mode #fpMap {
+    margin-top: 0;
+  }
+
+  body.fp-station-page.fp-seo-mode .fp-drawer {
+    margin-top: 18px;
+  }
+
+  body.fp-station-page.fp-seo-mode #fpSeo {
+    max-width: 1160px;
+    margin: 28px auto 0;
+    padding-bottom: 56px;
+  }
+}
+
+@media (max-width: 720px) {
+  #fpStationNearbyBlock .fp-nearby-list {
+    max-height: 220px;
+    overflow: auto;
+  }
+}
+
+@media (min-width: 920px) {
+  body.fp-station-page.fp-seo-mode {
+    background:
+      linear-gradient(180deg, #f4f6f8 0%, #eef2f5 100%);
+  }
+
+  body.fp-station-page.fp-seo-mode .fp-app {
+    position: relative;
+    background: transparent;
+  }
+
+  /*body.fp-station-page.fp-seo-mode .fp-app::before {
+    content: "";
+    position: absolute;
+    top: 64px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(1200px, calc(100% - 24px));
+    height: calc(100% - 96px);
+    border-radius: 32px;
+    background: rgba(255, 255, 255, 0.34);
+    border: 1px solid rgba(255, 255, 255, 0.42);
+    box-shadow:
+      0 24px 80px rgba(16, 24, 40, 0.10),
+      inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  */
+
+  body.fp-station-page.fp-seo-mode #fpStationSeoBox,
+  body.fp-station-page.fp-seo-mode .fp-map-wrap,
+  body.fp-station-page.fp-seo-mode #fpStationNearbyBlock,
+  body.fp-station-page.fp-seo-mode #fpSeo {
+    position: relative;
+    z-index: 1;
+  }
+}
