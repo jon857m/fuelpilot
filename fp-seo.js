@@ -572,14 +572,17 @@ box.innerHTML = `
           </div>
         </div>
       <div class="fp-st-cta" style="display:flex;align-items:center;gap:10px;flex-shrink:0;justify-content:flex-end;">
-        <a href="/for-forecourts?station=${encodeURIComponent(stationIdFromPath)}"
-          style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+        <span
+          aria-disabled="true"
+          title="Station claim tools coming soon"
+          style="display:inline-flex;align-items:center;gap:8px;
                   padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,0.18);
-                  background:rgba(255,255,255,0.12);color:#e9eef5;font-weight:800;">
-          Claim this station
-        </a>
+                  background:rgba(255,255,255,0.08);color:#e9eef5;font-weight:800;opacity:0.9;cursor:default;">
+          Coming soon: Claim this station
+        </span>
 
-        <a href="/?station=${encodeURIComponent(stationIdFromPath)}"
+        <a href="/?lat=${encodeURIComponent(Number(loc?.latitude || 0).toFixed(5))}&lng=${encodeURIComponent(Number(loc?.longitude || 0).toFixed(5))}&zoom=15&fuel=E10"
+          title="Back to the main map centred on this station"
           style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;
                   padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,0.14);
                   background:rgba(255,255,255,0.06);color:#e9eef5;font-weight:700;">

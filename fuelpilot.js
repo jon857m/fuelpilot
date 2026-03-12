@@ -1528,12 +1528,21 @@ return `
     setStatus(`Ready • API: ${shortUrl(API_BASE)}`);
 
     // Initial search
+    // Initial search
     const regionKey = readLS(LS.region, "central");
     const preset = PRESETS[regionKey] || PRESETS.central;
 
     const c = map.getCenter();
     try {
-      await runSearchPresetOrRefresh({ lat: c.lat, lng: c.lng }, preset);
+      const hasSharedMapState = applySharedMapStateFromUrl();
+
+      if (hasSharedMapState) {
+        invalidateMapSoon();
+        await new Promise((r) => setTimeout(r, 250));
+        await runSearchAreaViewport();
+      } else {
+        await runSearchPresetOrRefresh({ lat: c.lat, lng: c.lng }, preset);
+      }
     } catch (err) {
       console.error(err);
       setStatus(`Error: ${err.message || "Search failed"}`);
