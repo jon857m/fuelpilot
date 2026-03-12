@@ -689,6 +689,30 @@ body.fp-embedded .fp-app {
   opacity: 0.8;
 }
 
+/* Small row action buttons */
+
+.fp-mini-btn {
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 10px;
+
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.08);
+
+  color: inherit;
+  cursor: pointer;
+
+  transition: transform 120ms ease, background 120ms ease;
+}
+
+.fp-mini-btn:hover {
+  background: rgba(255,255,255,0.14);
+}
+
+.fp-mini-btn:active {
+  transform: scale(0.95);
+}
+
 .fp-link-btn {
   padding: 8px 10px;
   border-radius: 12px;
