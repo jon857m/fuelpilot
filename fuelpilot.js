@@ -1066,12 +1066,15 @@ function buildMarker(st, cuts) {
           </div>
         ` : ""}
 
-        <div class="fp-card__cta">
-          <a class="fp-link-btn" href="${dir}" target="_blank" rel="noopener">
-            Directions ↗
-          </a>
-          <span class="fp-mini">${escapeHtml(distanceLabel(st))}</span>
-        </div>
+      <div class="fp-card__cta">
+        <a class="fp-link-btn" href="${dir}" target="_blank" rel="noopener">
+          Directions ↗
+        </a>
+        <a class="fp-link-btn" href="/station/${encodeURIComponent(st._id)}">
+          Page
+        </a>
+        <span class="fp-mini">${escapeHtml(distanceLabel(st))}</span>
+      </div>
 
         ${hasPrice && lastUpdated ? `<div class="fp-card__trust">Updated: ${escapeHtml(String(lastUpdated))}</div>` : ""}
       </div>
@@ -1120,11 +1123,16 @@ return `
       <div class="fp-row__meta">${escapeHtml(name)} — ${escapeHtml(addr)}</div>
     </div>
     <div class="fp-row__right">
-      <span class="fp-mini">${escapeHtml(dist)}</span>
-      <a class="fp-link-btn" href="${dir}" target="_blank" rel="noopener" aria-label="Directions">
-        ↗
-      </a>
-    </div>
+    <span class="fp-mini">${escapeHtml(dist)}</span>
+
+    <a class="fp-link-btn" href="${dir}" target="_blank" rel="noopener" aria-label="Directions">
+      ↗
+    </a>
+
+    <a class="fp-link-btn" href="/station/${escapeHtml(st._id)}" aria-label="Station page">
+      Page
+    </a>
+  </div>
   </div>
 `;
   }).join("");
