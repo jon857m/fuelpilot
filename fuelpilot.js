@@ -1070,7 +1070,7 @@ function buildMarker(st, cuts) {
         <a class="fp-link-btn" href="${dir}" target="_blank" rel="noopener">
           Directions ↗
         </a>
-        <a class="fp-link-btn" href="/station/${encodeURIComponent(st._id)}">
+        <a class="fp-link-btn" href="${fpStationPageHref(st)}">
           Page
         </a>
         <span class="fp-mini">${escapeHtml(distanceLabel(st))}</span>
@@ -1080,6 +1080,54 @@ function buildMarker(st, cuts) {
       </div>
     `;
   }
+
+  const FP_STATION_SLUGS_URL = "/data/station-slugs.json";
+  let fpStationSlugByIdPromise = null;
+
+  async function fpLoadStationSlugById() {
+    if (fpStationSlugByIdPromise) return fpStationSlugByIdPromise;
+
+    fpStationSlugByIdPromise = (async () => {
+      try {
+        const res = await fetch(FP_STATION_SLUGS_URL, {
+          headers: { accept: "application/json" }
+        });
+        if (!res.ok) throw new Error(`Slug map fetch failed: ${res.status}`);
+
+        const slugToId = await res.json();
+        const idToSlug = {};
+
+        for (const [slug, id] of Object.entries(slugToId || {})) {
+          if (!slug || !id) continue;
+          idToSlug[String(id).toLowerCase()] = String(slug);
+        }
+
+        return idToSlug;
+      } catch (e) {
+        console.warn("[FuelPilot] station slug map failed", e);
+        return {};
+      }
+    })();
+
+    return fpStationSlugByIdPromise;
+  }
+
+  function fpStationPageHref(st) {
+    const rawId = String(st?._id || st?.id || "").trim();
+    const map = window.__FP_STATION_SLUG_BY_ID__ || null;
+
+    if (map && rawId) {
+      const slug = map[rawId.toLowerCase()];
+      if (slug) return `/station/${encodeURIComponent(slug)}`;
+    }
+
+    return `/station/${encodeURIComponent(rawId)}`;
+  }
+
+  window.__FP_STATION_SLUG_BY_ID__ = {};
+  fpLoadStationSlugById().then((map) => {
+    window.__FP_STATION_SLUG_BY_ID__ = map || {};
+  });
 
 function renderList() {
   const sortMode = readLS(LS.sort, "price");
@@ -1105,6 +1153,7 @@ function renderList() {
 
     const dir = stationDirectionsUrl(st);
     const dist = distanceLabel(st);
+    const pageHref = fpStationPageHref(st);
 
     // ✅ Visual link class for list accent bar:
     // priced = fp-q0..fp-q4, missing = fp-missing
@@ -1129,7 +1178,7 @@ return `
       ↗
     </a>
 
-    <a class="fp-link-btn" href="/station/${escapeHtml(st._id)}" aria-label="Station page">
+    <a class="fp-link-btn" href="${pageHref}" aria-label="Station page">
       Page
     </a>
   </div>
