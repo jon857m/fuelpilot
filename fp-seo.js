@@ -561,6 +561,13 @@ box.innerHTML = `
               }))
             : undefined,
 
+            priceRange: prices.length
+            ? `£${(Math.min(...prices.map(p => p.price)) / 100).toFixed(2)} - £${(Math.max(...prices.map(p => p.price)) / 100).toFixed(2)}`
+            : undefined,
+
+            currenciesAccepted: "GBP",
+            paymentAccepted: "Cash, Credit Card, Debit Card"
+
 
         };
 
