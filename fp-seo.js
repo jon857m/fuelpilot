@@ -92,7 +92,7 @@ async function fpResolveStationSlugToId(slug) {
       box = document.createElement("div");
       box.id = "fpStationSeoBox";
 
-      const isDesktopStationLayout = window.matchMedia("(min-width: 920px)").matches;
+      const isDesktopStationLayout = true;
 
       box.style.cssText = isDesktopStationLayout
         ? `
@@ -184,6 +184,41 @@ box.innerHTML = `
     const s = data?.station || data; // supports either {station:{}} or direct station
     const meta = s?.meta || {};
     const loc = meta?.location || {};
+
+    const brandKey = (() => {
+    const s = String(meta?.brand_name || "").trim().toLowerCase();
+    if (!s) return "";
+
+    if (s.includes("costco")) return "costco";
+    if (s.includes("shell")) return "shell";
+    if (s.includes("esso")) return "esso";
+    if (s.includes("tesco")) return "tesco";
+    if (s.includes("asda")) return "asda";
+    if (s.includes("bp")) return "bp";
+    if (s.includes("morrisons")) return "morrisons";
+    if (s.includes("sainsbury")) return "sainsburys";
+    if (s.includes("texaco")) return "texaco";
+    if (s.includes("gulf")) return "gulf";
+    if (s.includes("jet")) return "jet";
+    if (s.includes("applegreen")) return "applegreen";
+    if (s.includes("spar")) return "spar";
+
+    return "";
+  })();
+
+  console.log("[Station brandKey]", meta?.brand_name, "=>", brandKey);
+
+    const brandLogo = brandKey
+      ? `<div style="display:flex;justify-content:flex-end;margin-top:-8px;margin-bottom:8px;">
+          <img
+            src="/assets/brands/${brandKey}.svg"
+            alt="${meta?.brand_name || ''}"
+            loading="lazy"
+            onerror="this.onerror=null;this.src='/assets/brands/${brandKey}.png';"
+            style="width:52px;height:22px;display:block;object-fit:contain;opacity:.95"
+          >
+        </div>`
+      : "";
 
     // phone / opening / amenities (from meta)
     const phone =
@@ -409,7 +444,7 @@ box.innerHTML = `
     } 
 
     const phoneLine = phone
-      ? `<div style="opacity:0.85;font-size:13px; margin-top:6px;">Phone: <a href="tel:${phone.replace(/\s+/g, "")}" style="color:#e9eef5;text-decoration:none;font-weight:700;">${phone}</a></div>`
+      ? `<div style="opacity:0.85;font-size:13px; margin-top:10px;">Phone: <a href="tel:${phone.replace(/\s+/g, "")}" style="color:#e9eef5;text-decoration:none;font-weight:700;">${phone}</a></div>`
       : "";
 
     const openingHtml = usualDays
@@ -562,30 +597,32 @@ box.innerHTML = `
           <div style="font-weight:900;letter-spacing:-0.02em;line-height:1.15;">
             ${brand}${town ? ` in ${town}` : ""}
           </div>
-          <div style="opacity:0.8;font-size:13px;margin-top:6px;line-height:1.35;">
-            ${name ? `${name}<br>` : ""}
-            ${line1 ? `${line1}<br>` : ""}
-            ${postcode ? postcode : ""}
-            ${phoneLine}
-            ${openingHtml}
-            ${amenitiesHtml}
-          </div>
+        <div style="opacity:0.8;font-size:13px;margin-top:6px;line-height:1.35;">
+          ${name ? `${name}<br>` : ""}
+          ${line1 ? `${line1}<br>` : ""}
+          ${postcode ? postcode : ""}
+          ${phoneLine}
+          ${brandLogo}
+          ${openingHtml}
+          ${amenitiesHtml}
         </div>
-      <div class="fp-st-cta" style="display:flex;align-items:center;gap:10px;flex-shrink:0;justify-content:flex-end;">
+        </div>
+      <div class="fp-st-cta" style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex-shrink:0;">
+
         <span
           aria-disabled="true"
           title="Station claim tools coming soon"
           style="display:inline-flex;align-items:center;gap:8px;
-                  padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,0.18);
-                  background:rgba(255,255,255,0.08);color:#e9eef5;font-weight:800;opacity:0.9;cursor:default;">
+            padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,0.18);
+            background:rgba(255,255,255,0.08);color:#e9eef5;font-weight:800;opacity:0.9;cursor:default;">
           Coming soon: Claim this station
         </span>
 
         <a href="/?lat=${encodeURIComponent(Number(loc?.latitude || 0).toFixed(5))}&lng=${encodeURIComponent(Number(loc?.longitude || 0).toFixed(5))}&zoom=15&fuel=E10"
           title="Back to the main map centred on this station"
           style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;
-                  padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,0.14);
-                  background:rgba(255,255,255,0.06);color:#e9eef5;font-weight:700;">
+            padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,0.14);
+            background:rgba(255,255,255,0.06);color:#e9eef5;font-weight:700;">
           Back to map
         </a>
       </div>
