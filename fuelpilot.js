@@ -1689,21 +1689,8 @@ function setRobots(content) {
   }
 }
 
-// Default: conservative until we confirm enough priced stations
-setRobots("noindex,follow,max-image-preview:large");
-
-// After results render, inspect drawer count line
-setTimeout(() => {
-  const el = document.getElementById("fpCountLine");
-  const txt = (el ? el.textContent : "").toLowerCase();
-  const m = txt.match(/(\d+)\s*priced/);
-  const priced = m ? parseInt(m[1], 10) : 0;
-
-  if (priced >= 6)
-    setRobots("index,follow,max-image-preview:large");
-  else
-    setRobots("noindex,follow,max-image-preview:large");
-
-}, 1800);
+  // Homepage must always stay indexable.
+  // Do not let runtime UI state decide homepage indexability.
+  setRobots("index,follow,max-image-preview:large");
 
 })();
