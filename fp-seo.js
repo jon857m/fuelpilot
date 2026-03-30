@@ -366,14 +366,38 @@ box.innerHTML = `
     ensureTw("twitter:title").setAttribute("content", seoTitle);
     ensureTw("twitter:description").setAttribute("content", seoDesc);
 
+
+    function formatFuelLabel(fuelType) {
+    const ft = String(fuelType || "").trim().toUpperCase();
+
+    if (ft === "E10") return "Petrol";
+    if (ft === "E5") return "Premium Petrol";
+    if (ft === "DIESEL" || ft === "B7_STANDARD") return "Diesel";
+    if (ft === "B7_PREMIUM") return "Premium Diesel";
+
+    return String(fuelType || "").trim();
+  }
+
     // prices
-    const prices = Array.isArray(s?.fuel_prices) ? s.fuel_prices : [];
+    const fuelOrder = ["E10", "E5", "B7_STANDARD", "B7_PREMIUM"];
+
     const priceLines = prices
+      .slice()
+      .sort((a, b) => {
+        const ai = fuelOrder.indexOf(String(a?.fuel_type || "").toUpperCase());
+        const bi = fuelOrder.indexOf(String(b?.fuel_type || "").toUpperCase());
+
+        const ax = ai === -1 ? 999 : ai;
+        const bx = bi === -1 ? 999 : bi;
+
+        return ax - bx;
+      })
       .map(p => {
-        const ft = (p.fuel_type || "").toString();
+        const fuelLabel = formatFuelLabel(p.fuel_type);
         const pr = (p.price ?? "").toString();
+
         return `<div style="display:flex;justify-content:space-between;gap:10px;">
-          <span style="opacity:0.8">${ft}</span>
+          <span style="opacity:0.8">${fuelLabel}</span>
           <span style="font-weight:700">${pr}${pr ? "p" : ""}</span>
         </div>`;
       })
