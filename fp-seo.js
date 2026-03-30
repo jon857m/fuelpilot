@@ -379,6 +379,7 @@ box.innerHTML = `
   }
 
     // prices
+    const prices = Array.isArray(s?.fuel_prices) ? s.fuel_prices : [];
     const fuelOrder = ["E10", "E5", "B7_STANDARD", "B7_PREMIUM"];
 
     const priceLines = prices
