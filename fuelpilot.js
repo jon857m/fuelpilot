@@ -212,6 +212,26 @@ function invalidateMapSoon() {
     searchResults: $("fpSearchResults"),
   };
 
+    function fpFormatTimeAgoFromIso(iso) {
+    if (!iso) return "";
+
+    const t = Date.parse(iso);
+    if (!isFinite(t)) return "";
+
+    const mins = Math.max(0, Math.floor((Date.now() - t) / 60000));
+
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins} min${mins !== 1 ? "s" : ""} ago`;
+
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 72) return `${hrs} hr${hrs !== 1 ? "s" : ""} ago`;
+
+    const days = Math.floor(hrs / 24);
+    if (days < 10) return `${days} day${days !== 1 ? "s" : ""} ago`;
+
+    return new Date(t).toLocaleDateString("en-GB");
+  }
+
   function setStatus(text) {
     if (els.status) els.status.textContent = text;
   }
@@ -667,6 +687,7 @@ function initLocationSearch() {
   let lastSearchCenter = null; // {lat,lng}
   let lastOrigin = null;       // {lat,lng}
   let stations = [];
+  let lastCheckedAt = null; // manifestBuiltAt
   let mapDirty = false;
   let seoForceSearchArea = false;
 
@@ -822,6 +843,8 @@ cluster = L.markerClusterGroup({
     if (!data) throw new Error(`Non-JSON response via ${shortUrl(url)} (starts: ${text.slice(0, 60)})`);
     if (data.ok === false) throw new Error(`${data.message || "API returned ok:false"} via ${shortUrl(url)}`);
 
+    lastCheckedAt = data.manifestBuiltAt || null;
+
     return data;
   }
 
@@ -850,6 +873,8 @@ cluster = L.markerClusterGroup({
     }
     if (!data) throw new Error(`Non-JSON response via ${shortUrl(url)} (starts: ${text.slice(0, 60)})`);
     if (data.ok === false) throw new Error(`${data.message || "API returned ok:false"} via ${shortUrl(url)}`);
+
+    lastCheckedAt = data.manifestBuiltAt || null;
 
     return data;
   }
@@ -1045,6 +1070,7 @@ function buildMarker(st, cuts) {
     const addr = stationAddress(st);
     const badges = stationBadges(st);
     const dir = stationDirectionsUrl(st);
+    const checkedText = fpFormatTimeAgoFromIso(lastCheckedAt);
 
     const lastUpdated = st.updatedAt || st.lastUpdated || st.last_update || st.timestamp || null;
 
@@ -1076,7 +1102,8 @@ function buildMarker(st, cuts) {
         <span class="fp-mini">${escapeHtml(distanceLabel(st))}</span>
       </div>
 
-        ${hasPrice && lastUpdated ? `<div class="fp-card__trust">Updated: ${escapeHtml(String(lastUpdated))}</div>` : ""}
+        ${checkedText ? `<div class="fp-card__meta">Checked by FuelPilot ${checkedText}</div>` : ""}
+        ${hasPrice && lastUpdated ? `<div class="fp-card__trust">Updated ${escapeHtml(fpFormatTimeAgoFromIso(lastUpdated))}</div>` : ""}
       </div>
     `;
   }
@@ -1149,7 +1176,7 @@ function renderList() {
     const hasPrice = st._priceNum != null && isFinite(st._priceNum);
 
     const p = hasPrice ? formatPrice(st._priceNum) : "No price";
-    const fuelLabel = hasPrice ? `(${fuel})` : "";
+    const fuelLabel = "";
 
     const dir = stationDirectionsUrl(st);
     const dist = distanceLabel(st);
