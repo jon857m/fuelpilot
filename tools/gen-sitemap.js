@@ -6,7 +6,7 @@ const fs = require("fs");
 const path = require("path");
 
 const BASE_URL = "https://fuelpilot.co.uk"; // change if needed
-const PLACES_FILE = path.join(__dirname, "..", "public", "data", "places.json");
+const PLACES_FILE = path.join(__dirname, "..", "data", "places.json");
 const OUT_FILE = path.join(__dirname, "..", "sitemap.xml");
 
 // We’re shipping petrol pages first (safer).
