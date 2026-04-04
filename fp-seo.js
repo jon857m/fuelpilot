@@ -1113,7 +1113,7 @@ const raw = cleanedBase || String((p && p.slug) || "").trim();
       }
 
       const els = renderSeoScaffold({
-        heading: `${esc(brand || "Fuel")} in ${esc(placeLabel)}`,
+        heading: `${esc(name)}${town ? `, ${esc(town)}` : ""}${postcode ? ` (${esc(postcode)})` : ""}`,
         introText: `Live fuel prices, address details and opening times for ${name}${placeLabel ? ` in ${placeLabel}` : ""}.`,
         statItems: [
           brand || "Fuel station",
