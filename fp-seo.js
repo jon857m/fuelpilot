@@ -696,12 +696,64 @@ box.innerHTML = `
         box-sizing: border-box;
       `;
 
-      nearbyBlock.innerHTML = `
-        <div style="font-weight:800;margin-bottom:10px;">Other nearby fuel stations</div>
-        <div class="fp-nearby-list">
-          ${nearbyHtml || `<div style="opacity:0.7;font-size:13px;">No nearby stations found.</div>`}
-        </div>
-      `;
+    // --- Build nearby LOCATION links (SEO critical) ---
+    let locationLinksHtml = "";
+
+    if (typeof lat === "number" && typeof lng === "number") {
+      try {
+        const places = await fpLoadPlaces();
+
+        // Sort by distance
+        const sorted = places
+          .map(p => ({
+            ...p,
+            km: fpKmBetween(lat, lng, Number(p.lat), Number(p.lng))
+          }))
+          .filter(p => isFinite(p.km))
+          .sort((a, b) => a.km - b.km)
+          .slice(0, 10); // 10 places = 20 links
+
+        const petrolLinks = sorted.map(p => `
+          <a href="/fuel/petrol/${p.slug}/"
+            style="display:block;padding:6px 0;color:#e9eef5;text-decoration:none;">
+            ${p.name}
+          </a>
+        `).join("");
+
+        const dieselLinks = sorted.map(p => `
+          <a href="/fuel/diesel/${p.slug}/"
+            style="display:block;padding:6px 0;color:#e9eef5;text-decoration:none;">
+            ${p.name}
+          </a>
+        `).join("");
+
+        locationLinksHtml = `
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.10);">
+            <div style="font-weight:800;margin-bottom:8px;">Nearby petrol prices</div>
+            ${petrolLinks}
+          </div>
+
+          <div style="margin-top:12px;">
+            <div style="font-weight:800;margin-bottom:8px;">Nearby diesel prices</div>
+            ${dieselLinks}
+          </div>
+        `;
+
+      } catch (e) {
+        console.warn("[SEO] Failed to build location links", e);
+      }
+    }
+
+    // --- Existing nearby station list ---
+    nearbyBlock.innerHTML = `
+      <div style="font-weight:800;margin-bottom:10px;">Other nearby fuel stations</div>
+
+      <div class="fp-nearby-list">
+        ${nearbyHtml || `<div style="opacity:0.7;font-size:13px;">No nearby stations found.</div>`}
+      </div>
+
+      ${locationLinksHtml}
+    `;
 
       const mapWrap = document.querySelector(".fp-map-wrap");
       if (mapWrap && mapWrap.parentNode) {
