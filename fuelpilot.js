@@ -1072,6 +1072,7 @@ function buildMarker(st, cuts) {
     const dir = stationDirectionsUrl(st);
     const checkedText = fpFormatTimeAgoFromIso(lastCheckedAt);
 
+    const lastChanged = st.changedAt || null;
     const lastUpdated = st.updatedAt || st.lastUpdated || st.last_update || st.timestamp || null;
 
     els.selectedCard.hidden = false;
@@ -1102,8 +1103,9 @@ function buildMarker(st, cuts) {
         <span class="fp-mini">${escapeHtml(distanceLabel(st))}</span>
       </div>
 
-        ${checkedText ? `<div class="fp-card__meta">Checked by FuelPilot ${checkedText}</div>` : ""}
-        ${hasPrice && lastUpdated ? `<div class="fp-card__trust">Updated ${escapeHtml(fpFormatTimeAgoFromIso(lastUpdated))}</div>` : ""}
+      ${checkedText ? `<div class="fp-card__meta">Checked by FuelPilot ${checkedText}</div>` : ""}
+      ${hasPrice && lastChanged ? `<div class="fp-card__trust">Price last changed ${escapeHtml(fpFormatTimeAgoFromIso(lastChanged))}</div>` : ""}
+      ${hasPrice && lastUpdated ? `<div class="fp-card__trust">Last updated ${escapeHtml(fpFormatTimeAgoFromIso(lastUpdated))}</div>` : ""}
       </div>
     `;
   }
