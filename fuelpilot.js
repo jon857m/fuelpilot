@@ -1343,6 +1343,22 @@ return `
     els.countLine.textContent = `${stations.length} shown • ${pricedCount} priced • ${missingCount} no-price`;
   }
 
+    // Publish current location-page results for the SEO block
+  try {
+    window.__FP_SEO_RESULTS__ = {
+      stations: Array.isArray(stations) ? stations.slice() : [],
+      pricedCount,
+      missingCount,
+      fuel: String((els.fuelSelect && els.fuelSelect.value) || "").toUpperCase()
+    };
+
+    window.dispatchEvent(new CustomEvent("fp:seo-results-ready", {
+      detail: window.__FP_SEO_RESULTS__
+    }));
+  } catch (e) {
+    console.warn("[FP SEO] publish results failed", e);
+  }
+
   setStatus(`Showing ${stations.length} stations (${getPricesOnly() ? "priced only" : "incl. no-price"})`);
 
   renderList();

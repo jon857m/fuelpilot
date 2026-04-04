@@ -1271,6 +1271,154 @@ const raw = cleanedBase || String((p && p.slug) || "").trim();
     });
   }
 
+    function renderLocationFeaturedPrices(route, payload) {
+    if (!payload || !Array.isArray(payload.stations)) return;
+
+    const body = document.getElementById("fpSeoBody");
+    if (!body) return;
+
+    // Remove any earlier version
+    const old = body.querySelector(".fp-seo-featured-prices");
+    if (old) old.remove();
+
+    const fuelLabel = route && route.fuel === "diesel" ? "diesel" : "petrol";
+    const uiFuel = route && route.fuel === "diesel" ? "DIESEL" : "E10";
+
+    function esc(v) {
+      return String(v == null ? "" : v)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function priceNum(st) {
+      if (st && st._priceNum != null && isFinite(Number(st._priceNum))) {
+        return Number(st._priceNum);
+      }
+
+      const prices = Array.isArray(st && st.fuel_prices) ? st.fuel_prices : [];
+      const wanted = uiFuel === "DIESEL"
+        ? ["DIESEL", "B7_STANDARD"]
+        : ["E10"];
+
+      for (const p of prices) {
+        const ft = String((p && p.fuel_type) || "").toUpperCase();
+        if (!wanted.includes(ft)) continue;
+
+        const n = Number(p.price);
+        if (isFinite(n)) return n > 300 ? n / 10 : n;
+      }
+
+      return null;
+    }
+
+    function formatPrice(n) {
+      if (n == null || !Number.isFinite(Number(n))) return "";
+      return Number(n).toFixed(1) + "p";
+    }
+
+    function stationTitle(st) {
+      const brand = String(st.brand || st.operator || st.retailer || "").trim();
+      const name = String(st.name || "").trim();
+      if (brand && name && !name.toLowerCase().includes(brand.toLowerCase())) {
+        return `${brand} — ${name}`;
+      }
+      return name || brand || "Fuel station";
+    }
+
+    function stationMeta(st) {
+      const parts = [];
+      const town =
+        String(
+          st.city ||
+          (st.meta && st.meta.location && st.meta.location.city) ||
+          ""
+        ).trim();
+      const postcode =
+        String(
+          st.postcode ||
+          (st.meta && st.meta.location && st.meta.location.postcode) ||
+          ""
+        ).trim();
+
+      if (town) parts.push(town);
+      if (postcode) parts.push(postcode);
+
+      return parts.join(", ");
+    }
+
+    function stationHref(st) {
+      const id =
+        String(
+          st.id ||
+          st.node_id ||
+          (st.meta && st.meta.node_id) ||
+          ""
+        ).trim();
+
+      return id ? `/station/${encodeURIComponent(id)}` : "";
+    }
+
+      const featured = payload.stations
+        .map((st) => {
+          const p = Number(priceNum(st));
+          return (Number.isFinite(p) && p > 0) ? { st, price: p } : null;
+        })
+      .filter(Boolean)
+      .sort((a, b) => a.price - b.price)
+      .slice(0, 5);
+
+    if (!featured.length) return;
+
+    const html = `
+      <div class="fp-seo-featured-prices" style="margin-top:16px;">
+        <h3>Live ${fuelLabel} prices at petrol stations in ${placeName}</h3>
+        <div style="display:grid;gap:10px;">
+          ${featured.map(({ st, price }) => {
+            const href = stationHref(st);
+            const title = stationTitle(st);
+            const meta = stationMeta(st);
+
+            return `
+              <div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;">
+                <div>
+                  ${
+                    href
+                      ? `<a href="${href}" style="font-weight:700;text-decoration:none;color:#e9eef5;">${esc(title)}</a>`
+                      : `<strong>${esc(title)}</strong>`
+                  }
+                  ${meta ? `<div style="opacity:0.8;font-size:13px;">${esc(meta)}</div>` : ""}
+                </div>
+                <div style="font-weight:800;white-space:nowrap;">${esc(formatPrice(price))}</div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+
+    const cluster = body.querySelector(".fp-seo-cluster");
+    if (cluster) {
+      cluster.insertAdjacentHTML("beforebegin", html);
+    } else {
+      body.insertAdjacentHTML("beforeend", html);
+    }
+
+    const featuredEl = body.querySelector(".fp-seo-featured-prices:last-of-type");
+    if (featuredEl) {
+      featuredEl.addEventListener("click", (ev) => {
+        const a = ev.target && ev.target.closest ? ev.target.closest("a[href]") : null;
+        if (!a) return;
+        const href = a.getAttribute("href") || "";
+        if (!href.startsWith("/station/")) return;
+        ev.preventDefault();
+        fpSeoNavigate(href);
+      });
+    }
+  }
+
   function renderSeo(route) {
     const fuelLabel = route.fuel === "diesel" ? "diesel" : "petrol";
     const placeLabel = route.name;
@@ -1493,16 +1641,32 @@ const raw = cleanedBase || String((p && p.slug) || "").trim();
     window.__FP_SEO_FORCE_SEARCH_AREA__ = true;
   }
 
+    window.addEventListener("fp:seo-results-ready", (ev) => {
+    try {
+      const r0 = parseSeoRoute();
+      if (!r0) return;
+
+      enrich(r0).then((route) => {
+        renderLocationFeaturedPrices(route, ev.detail || window.__FP_SEO_RESULTS__);
+      }).catch((e) => {
+        console.warn("[FP SEO] featured prices enrich failed", e);
+      });
+    } catch (e) {
+      console.warn("[FP SEO] featured prices render failed", e);
+    }
+  });
+
   document.addEventListener("DOMContentLoaded", async () => {
     const r0 = parseSeoRoute();
     if (!r0) return;
 
     const r = await enrich(r0);
 
-    // Render SEO text (safe)
     try { renderSeo(r); } catch (e) { console.warn("[FP SEO] renderSeo failed", e); }
 
-    // Drive UI (safe)
+    // If results are already present for any reason, render immediately
+    try { renderLocationFeaturedPrices(r, window.__FP_SEO_RESULTS__); } catch (e) { console.warn("[FP SEO] initial featured prices render failed", e); }
+
     try { applyRoute(r); } catch (e) { console.warn("[FP SEO] applyRoute failed", e); }
   });
 })();
