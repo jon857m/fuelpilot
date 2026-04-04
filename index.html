@@ -43,8 +43,8 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 
-  <title>FuelPilot – Live UK Fuel Prices Near You | Petrol & Diesel Map</title>
-  <meta name="description" content="FuelPilot is a clean, map-first way to find live UK fuel prices near you." />
+  <title id="fpTitle">FuelPilot – Live UK Fuel Prices Near You</title>
+  <meta name="description" content="" id="fpMetaDesc" />
 
   <meta property="og:site_name" content="FuelPilot">
   <meta name="apple-mobile-web-app-title" content="FuelPilot">
@@ -52,7 +52,7 @@
   <link rel="icon" href="/favicon.ico">
 
   <!-- Canonical (SEO script will update this on /fuel/... routes) -->
-  <link rel="canonical" href="https://fuelpilot.co.uk/" />
+  <link rel="canonical" href="" id="fpCanonical" />
 
   <meta name="robots" content="index, follow, max-image-preview:large">
 
@@ -102,6 +102,36 @@
 
   <!-- App CSS -->
   <link rel="stylesheet" href="/fuelpilot.css" />
+
+  <script>
+  (function () {
+    var path = location.pathname;
+
+    if (!path.startsWith('/station/')) return;
+
+    var slug = path.split('/station/')[1] || '';
+    if (!slug) return;
+
+    var readable = slug
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+
+    var title = readable + " | FuelPilot";
+    var desc = "Live fuel prices at " + readable + ". Updated every 15 minutes.";
+
+    var t = document.getElementById('fpTitle');
+    var m = document.getElementById('fpMetaDesc');
+    var c = document.getElementById('fpCanonical');
+
+    if (t) t.textContent = title;
+    if (m) m.setAttribute('content', desc);
+    if (c) c.setAttribute('href', location.origin + path);
+
+    document.title = title;
+  })();
+  </script>
+
+
 </head>
 
 <body>
