@@ -696,64 +696,12 @@ box.innerHTML = `
         box-sizing: border-box;
       `;
 
-    // --- Build nearby LOCATION links (SEO critical) ---
-    let locationLinksHtml = "";
-
-    if (typeof lat === "number" && typeof lng === "number") {
-      try {
-        const places = await fpLoadPlaces();
-
-        // Sort by distance
-        const sorted = places
-          .map(p => ({
-            ...p,
-            km: fpKmBetween(lat, lng, Number(p.lat), Number(p.lng))
-          }))
-          .filter(p => isFinite(p.km))
-          .sort((a, b) => a.km - b.km)
-          .slice(0, 10); // 10 places = 20 links
-
-        const petrolLinks = sorted.map(p => `
-          <a href="/fuel/petrol/${p.slug}/"
-            style="display:block;padding:6px 0;color:#e9eef5;text-decoration:none;">
-            ${p.name}
-          </a>
-        `).join("");
-
-        const dieselLinks = sorted.map(p => `
-          <a href="/fuel/diesel/${p.slug}/"
-            style="display:block;padding:6px 0;color:#e9eef5;text-decoration:none;">
-            ${p.name}
-          </a>
-        `).join("");
-
-        locationLinksHtml = `
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.10);">
-            <div style="font-weight:800;margin-bottom:8px;">Nearby petrol prices</div>
-            ${petrolLinks}
-          </div>
-
-          <div style="margin-top:12px;">
-            <div style="font-weight:800;margin-bottom:8px;">Nearby diesel prices</div>
-            ${dieselLinks}
-          </div>
-        `;
-
-      } catch (e) {
-        console.warn("[SEO] Failed to build location links", e);
-      }
-    }
-
-    // --- Existing nearby station list ---
-    nearbyBlock.innerHTML = `
-      <div style="font-weight:800;margin-bottom:10px;">Other nearby fuel stations</div>
-
-      <div class="fp-nearby-list">
-        ${nearbyHtml || `<div style="opacity:0.7;font-size:13px;">No nearby stations found.</div>`}
-      </div>
-
-      ${locationLinksHtml}
-    `;
+      nearbyBlock.innerHTML = `
+        <div style="font-weight:800;margin-bottom:10px;">Other nearby fuel stations</div>
+        <div class="fp-nearby-list">
+          ${nearbyHtml || `<div style="opacity:0.7;font-size:13px;">No nearby stations found.</div>`}
+        </div>
+      `;
 
       const mapWrap = document.querySelector(".fp-map-wrap");
       if (mapWrap && mapWrap.parentNode) {
@@ -1176,6 +1124,134 @@ const raw = cleanedBase || String((p && p.slug) || "").trim();
 
       const body = els && els.body;
       if (!body) return;
+
+          fpLoadPlaces()
+      .then((places) => {
+        if (!Array.isArray(places)) return;
+
+        let currentPlace = null;
+        let bestKm = Infinity;
+
+        for (const p of places) {
+          if (!p || !p.slug) continue;
+
+          const pLat = Number(p.lat);
+          const pLng = Number(p.lng);
+          if (!isFinite(pLat) || !isFinite(pLng)) continue;
+
+          const km = fpKmBetween(lat, lng, pLat, pLng);
+          if (km < bestKm) {
+            bestKm = km;
+            currentPlace = p;
+          }
+        }
+
+        if (!currentPlace) return;
+
+        const currentSlug = currentPlace.slug || "";
+        const aLat = Number(currentPlace.lat);
+        const aLng = Number(currentPlace.lng);
+
+        let candidates = places.filter((p) => {
+          if (!p || !p.slug || p.slug === currentSlug) return false;
+          const pLat = Number(p.lat);
+          const pLng = Number(p.lng);
+          return isFinite(pLat) && isFinite(pLng);
+        });
+
+        if (isFinite(aLat) && isFinite(aLng)) {
+          candidates.sort((p1, p2) => {
+            const d1 = fpKmBetween(aLat, aLng, Number(p1.lat), Number(p1.lng));
+            const d2 = fpKmBetween(aLat, aLng, Number(p2.lat), Number(p2.lng));
+
+            if (d1 !== d2) return d1 - d2;
+            return fpTypeScore(p1) - fpTypeScore(p2);
+          });
+        } else {
+          candidates.sort((a, b) =>
+            String(a.name || "").localeCompare(String(b.name || ""))
+          );
+        }
+
+        const cluster = [];
+        const seen = new Set();
+        const currentBase = currentPlace ? fpPlaceBaseKey(currentPlace) : null;
+
+        function pushFrom(list) {
+          for (const p of list) {
+            if (!p) continue;
+
+            const base = fpPlaceBaseKey(p);
+
+            if (currentBase && base === currentBase) continue;
+            if (FP_SEO_BLOCKED_BASES.has(base)) continue;
+            if (seen.has(base)) continue;
+
+            cluster.push(p);
+            seen.add(base);
+
+            if (cluster.length === 8) return true;
+          }
+          return false;
+        }
+
+        const isTownPage =
+          currentPlace &&
+          String(currentPlace.type || "").toLowerCase().startsWith("town");
+
+        pushFrom(candidates.filter((p) => fpTypeScore(p) === 0));
+
+        if (cluster.length < 8) {
+          if (!isTownPage) {
+            pushFrom(candidates.filter((p) => fpTypeScore(p) !== 0));
+          }
+        }
+
+        let petrolLinks = "";
+        let dieselLinks = "";
+
+        for (const p of cluster) {
+          const slug = p.slug;
+          const name = p.name || slug;
+          const label = name
+            .split(",")[0]
+            .replace(/^NR\s+/i, "")
+            .replace(/^NEAR\s+/i, "")
+            .trim();
+
+          const petrolHref = "/fuel/petrol/" + encodeURIComponent(slug) + "/";
+          const dieselHref = "/fuel/diesel/" + encodeURIComponent(slug) + "/";
+
+          petrolLinks += `<a href="${petrolHref}" data-fp-href="${petrolHref}">${label}</a> `;
+          dieselLinks += `<a href="${dieselHref}" data-fp-href="${dieselHref}">${label}</a> `;
+        }
+
+        body.insertAdjacentHTML(
+          "beforeend",
+          `
+            <div class="fp-seo-cluster">
+              <h3>Nearby petrol pages</h3>
+              <div class="fp-seo-links">${petrolLinks}</div>
+
+              <h3 style="margin-top:14px;">Nearby diesel pages</h3>
+              <div class="fp-seo-links">${dieselLinks}</div>
+            </div>
+          `
+        );
+
+        const clusterEl = body.querySelector(".fp-seo-cluster:last-of-type");
+        if (clusterEl) {
+          clusterEl.addEventListener("click", (ev) => {
+            const a = ev.target && ev.target.closest ? ev.target.closest("a[data-fp-href]") : null;
+            if (!a) return;
+            ev.preventDefault();
+            fpSeoNavigate(a.getAttribute("data-fp-href"));
+          });
+        }
+      })
+      .catch((e) => {
+        console.warn("[Station SEO] cluster build failed", e);
+      });
 
       body.innerHTML = `
         <p><strong>${esc(name)}</strong>${brand && brand !== name ? ` is a ${esc(brand)} station` : " is a fuel station"}${addressLine ? ` at <strong>${esc(addressLine)}</strong>` : ""}.</p>
