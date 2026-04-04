@@ -346,7 +346,7 @@ box.innerHTML = `
       canon.setAttribute("rel", "canonical");
       document.head.appendChild(canon);
     }
-    canon.setAttribute("href", `https://fuelpilot.co.uk/station/${stationIdFromPath}`);
+    canon.setAttribute("href", location.origin + location.pathname);
 
     // OpenGraph + Twitter (minimal, safe)
     function ensureProp(prop) {
@@ -361,7 +361,7 @@ box.innerHTML = `
     }
     ensureProp("og:title").setAttribute("content", seoTitle);
     ensureProp("og:description").setAttribute("content", seoDesc);
-    ensureProp("og:url").setAttribute("content", `https://fuelpilot.co.uk/station/${stationIdFromPath}`);
+    ensureProp("og:url").setAttribute("content", location.origin + location.pathname);
     ensureProp("og:type").setAttribute("content", "website");
     ensureTw("twitter:title").setAttribute("content", seoTitle);
     ensureTw("twitter:description").setAttribute("content", seoDesc);
