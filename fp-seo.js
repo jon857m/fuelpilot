@@ -949,162 +949,199 @@ const raw = cleanedBase || String((p && p.slug) || "").trim();
   }
 
 
-    function renderStationSeo(detail) {
+  function renderStationSeo(detail) {
     if (!detail) return;
 
     const lat = Number(detail.lat);
     const lng = Number(detail.lng);
     if (!isFinite(lat) || !isFinite(lng)) return;
 
+    const raw = detail.raw || {};
+    const meta = raw.meta || {};
+    const loc = meta.location || {};
+    const prices = Array.isArray(raw.fuel_prices) ? raw.fuel_prices : [];
+
+    const brand = String(detail.brand || meta.brand_name || "").trim();
+    const name = String(detail.name || meta.trading_name || raw.trading_name || brand || "Fuel station").trim();
+    const line1 = String(loc.address_line_1 || "").trim();
+    const town = String(loc.city || "").trim();
+    const postcode = String(loc.postcode || detail.postcode || "").trim();
+    const phone = String(meta.public_phone_number || raw.public_phone_number || "").trim();
+
+    const usualDays = meta.opening_times && meta.opening_times.usual_days
+      ? meta.opening_times.usual_days
+      : null;
+
+    const amenities = Array.isArray(meta.amenities) ? meta.amenities : [];
+
+    function esc(v) {
+      return String(v == null ? "" : v)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function formatFuelLabel(ft) {
+      const s = String(ft || "").trim().toUpperCase();
+      if (s === "E10") return "Petrol";
+      if (s === "E5") return "Premium Petrol";
+      if (s === "DIESEL" || s === "B7_STANDARD") return "Diesel";
+      if (s === "B7_PREMIUM") return "Premium Diesel";
+      return String(ft || "").trim();
+    }
+
+    function formatPrice(v) {
+      if (v == null || v === "") return "";
+      const n = Number(v);
+      if (!isFinite(n)) return String(v);
+      if (n > 300) return (n / 10).toFixed(1) + "p";
+      return n.toFixed(1) + "p";
+    }
+
+    function prettifyAmenity(a) {
+      const map = {
+        adblue_packaged: "AdBlue",
+        customer_toilets: "Toilets",
+        water_filling: "Water"
+      };
+      const rawAmenity = String(a || "").trim();
+      if (!rawAmenity) return "";
+      if (map[rawAmenity]) return map[rawAmenity];
+      return rawAmenity
+        .replace(/_/g, " ")
+        .toLowerCase()
+        .replace(/(^|\\s)\\S/g, function (c) { return c.toUpperCase(); });
+    }
+
+    function formatDayHours(dayObj) {
+      if (!dayObj) return "—";
+      if (dayObj.is_24_hours) return "Open 24h";
+      const o = String(dayObj.open || "").slice(0, 5);
+      const c = String(dayObj.close || "").slice(0, 5);
+      if (!o || !c || (o === "00:00" && c === "00:00")) return "—";
+      return o + "–" + c;
+    }
+
+    const addressBits = [line1, town, postcode].filter(Boolean);
+    const addressLine = addressBits.join(", ");
+
+    const orderedPrices = prices
+      .slice()
+      .sort((a, b) => {
+        const order = ["E10", "E5", "B7_STANDARD", "B7_PREMIUM"];
+        const ai = order.indexOf(String(a && a.fuel_type || "").toUpperCase());
+        const bi = order.indexOf(String(b && b.fuel_type || "").toUpperCase());
+        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+      });
+
+    let priceHtml = "";
+    if (orderedPrices.length) {
+      priceHtml = orderedPrices.map(function (p) {
+        return `
+          <div style="display:flex;justify-content:space-between;gap:12px;">
+            <span>${esc(formatFuelLabel(p.fuel_type))}</span>
+            <strong>${esc(formatPrice(p.price))}</strong>
+          </div>
+        `;
+      }).join("");
+    } else {
+      priceHtml = `<p>No current prices available for this station.</p>`;
+    }
+
+    let openingHtml = "";
+    if (usualDays) {
+      const days = [
+        ["Mon", "monday"],
+        ["Tue", "tuesday"],
+        ["Wed", "wednesday"],
+        ["Thu", "thursday"],
+        ["Fri", "friday"],
+        ["Sat", "saturday"],
+        ["Sun", "sunday"]
+      ];
+
+      openingHtml = `
+        <h3>Opening hours</h3>
+        <div style="display:grid;gap:6px;">
+          ${days.map(function (pair) {
+            return `
+              <div style="display:flex;justify-content:space-between;gap:12px;">
+                <span>${pair[0]}</span>
+                <strong>${esc(formatDayHours(usualDays[pair[1]]))}</strong>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    let amenitiesHtml = "";
+    const amenityList = amenities.map(prettifyAmenity).filter(Boolean).slice(0, 12);
+    if (amenityList.length) {
+      amenitiesHtml = `
+        <h3>Facilities</h3>
+        <p>${amenityList.map(esc).join(" • ")}</p>
+      `;
+    }
+
     fpLoadPlaces().then((places) => {
-      if (!Array.isArray(places) || !places.length) return;
+      let placeLabel = town || postcode || "nearby";
 
-      let currentPlace = null;
-      let bestKm = Infinity;
+      if (Array.isArray(places) && places.length) {
+        let currentPlace = null;
+        let bestKm = Infinity;
 
-      for (const p of places) {
-        if (!p || !p.slug) continue;
+        for (const p of places) {
+          if (!p || !p.slug) continue;
 
-        const pLat = Number(p.lat);
-        const pLng = Number(p.lng);
-        if (!isFinite(pLat) || !isFinite(pLng)) continue;
+          const pLat = Number(p.lat);
+          const pLng = Number(p.lng);
+          if (!isFinite(pLat) || !isFinite(pLng)) continue;
 
-        const km = fpKmBetween(lat, lng, pLat, pLng);
-        if (km < bestKm) {
-          bestKm = km;
-          currentPlace = p;
+          const km = fpKmBetween(lat, lng, pLat, pLng);
+          if (km < bestKm) {
+            bestKm = km;
+            currentPlace = p;
+          }
+        }
+
+        if (currentPlace) {
+          placeLabel = String(currentPlace.name || currentPlace.slug || placeLabel).split(",")[0].trim();
         }
       }
 
-      if (!currentPlace) return;
-
-      const fuelLabel = "petrol";
-      const fuelTitle = "Petrol";
-      const placeLabel = (currentPlace.name || currentPlace.slug || "nearby").split(",")[0].trim();
-
       const els = renderSeoScaffold({
-        heading: `Cheap ${fuelTitle} in ${placeLabel} and nearby`,
-        introText: `Live ${fuelTitle} prices around ${placeLabel}. Pan the map and use “Search this area” to refresh nearby stations.`,
-        statItems: ["Map-first", "Compare nearby areas", "Fast to use"]
+        heading: `${esc(brand || "Fuel")} in ${esc(placeLabel)}`,
+        introText: `Live fuel prices, address details and opening times for ${name}${placeLabel ? ` in ${placeLabel}` : ""}.`,
+        statItems: [
+          brand || "Fuel station",
+          postcode || "UK station",
+          orderedPrices.length ? `${orderedPrices.length} fuel price${orderedPrices.length === 1 ? "" : "s"}` : "No live prices"
+        ]
       });
 
       const body = els && els.body;
       if (!body) return;
 
       body.innerHTML = `
-        <p>FuelPilot shows <strong>${fuelLabel}</strong> prices on a live map for <strong>${placeLabel}</strong> and nearby areas.</p>
-        <p>Pan or zoom, then tap <strong>Search this area</strong> to refresh results for what’s on screen.</p>
+        <p><strong>${esc(name)}</strong>${brand && brand !== name ? ` is a ${esc(brand)} station` : " is a fuel station"}${addressLine ? ` at <strong>${esc(addressLine)}</strong>` : ""}.</p>
 
-        <p><strong>${fuelTitle} near ${placeLabel}</strong>: compare nearby forecourts and find cheaper prices.</p>
-        <p>View <strong>${fuelTitle} stations in ${placeLabel}</strong> and check today’s updates.</p>
-        <p>See <strong>${fuelTitle} prices in ${placeLabel}</strong> compared with nearby areas.</p>
+        ${phone ? `<p><strong>Phone:</strong> <a href="tel:${esc(phone.replace(/\\s+/g, ""))}">${esc(phone)}</a></p>` : ""}
+
+        <h3>Current prices</h3>
+        <div style="display:grid;gap:6px;">${priceHtml}</div>
+
+        ${openingHtml}
+
+        ${amenitiesHtml}
+
+        <h3>Station summary</h3>
+        <p>Use FuelPilot to compare this station with nearby forecourts, check live prices and view the station on the map.</p>
       `;
-
-      const currentSlug = currentPlace.slug || "";
-      const aLat = Number(currentPlace.lat);
-      const aLng = Number(currentPlace.lng);
-
-      let candidates = places.filter((p) => {
-        if (!p || !p.slug || p.slug === currentSlug) return false;
-        const pLat = Number(p.lat);
-        const pLng = Number(p.lng);
-        return isFinite(pLat) && isFinite(pLng);
-      });
-
-      if (isFinite(aLat) && isFinite(aLng)) {
-        candidates.sort((p1, p2) => {
-          const d1 = fpKmBetween(aLat, aLng, Number(p1.lat), Number(p1.lng));
-          const d2 = fpKmBetween(aLat, aLng, Number(p2.lat), Number(p2.lng));
-
-          if (d1 !== d2) return d1 - d2;
-          return fpTypeScore(p1) - fpTypeScore(p2);
-        });
-      } else {
-        candidates.sort((a, b) =>
-          String(a.name || "").localeCompare(String(b.name || ""))
-        );
-      }
-
-      const cluster = [];
-      const seen = new Set();
-      const currentBase = currentPlace ? fpPlaceBaseKey(currentPlace) : null;
-
-      function pushFrom(list) {
-        for (const p of list) {
-          if (!p) continue;
-
-          const base = fpPlaceBaseKey(p);
-
-          if (currentBase && base === currentBase) continue;
-          if (FP_SEO_BLOCKED_BASES.has(base)) continue;
-          if (seen.has(base)) continue;
-
-          cluster.push(p);
-          seen.add(base);
-
-          if (cluster.length === 8) return true;
-        }
-        return false;
-      }
-
-      const isTownPage =
-        currentPlace &&
-        String(currentPlace.type || "").toLowerCase().startsWith("town");
-
-      pushFrom(candidates.filter((p) => fpTypeScore(p) === 0));
-
-      if (cluster.length < 8) {
-        if (!isTownPage) {
-          pushFrom(candidates.filter((p) => fpTypeScore(p) !== 0));
-        }
-      }
-
-      let petrolLinks = "";
-      let dieselLinks = "";
-
-      for (const p of cluster) {
-        const slug = p.slug;
-        const name = p.name || slug;
-        const label = name
-        .split(",")[0]
-        .replace(/^NR\s+/i, "")
-        .replace(/^NEAR\s+/i, "")
-        .trim();
-
-        const petrolHref = "/fuel/petrol/" + encodeURIComponent(slug) + "/";
-        const dieselHref = "/fuel/diesel/" + encodeURIComponent(slug) + "/";
-
-        petrolLinks += `<a href="${petrolHref}" data-fp-href="${petrolHref}">${label}</a> `;
-        dieselLinks += `<a href="${dieselHref}" data-fp-href="${dieselHref}">${label}</a> `;
-      }
-
-      body.insertAdjacentHTML(
-        "beforeend",
-        `
-          <div class="fp-seo-cluster">
-            <h3>Nearby petrol pages</h3>
-            <div class="fp-seo-links">${petrolLinks}</div>
-
-            <h3 style="margin-top:14px;">Nearby diesel pages</h3>
-            <div class="fp-seo-links">${dieselLinks}</div>
-          </div>
-        `
-      );
-
-      const clusterEl = body.querySelector(".fp-seo-cluster:last-of-type");
-      if (clusterEl) {
-        clusterEl.addEventListener("click", (ev) => {
-          const a = ev.target && ev.target.closest ? ev.target.closest("a[data-fp-href]") : null;
-          if (!a) return;
-          ev.preventDefault();
-          fpSeoNavigate(a.getAttribute("data-fp-href"));
-        });
-      }
-    }).catch((e) => {
-      console.warn("[Station SEO] renderStationSeo failed", e);
     });
   }
-
 
   function renderSeo(route) {
     const fuelLabel = route.fuel === "diesel" ? "diesel" : "petrol";
