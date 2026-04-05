@@ -212,7 +212,7 @@ function invalidateMapSoon() {
     searchResults: $("fpSearchResults"),
   };
 
-    function fpFormatTimeAgoFromIso(iso) {
+  function fpFormatTimeAgoFromIso(iso) {
     if (!iso) return "";
 
     const t = Date.parse(iso);
@@ -220,7 +220,6 @@ function invalidateMapSoon() {
 
     const mins = Math.max(0, Math.floor((Date.now() - t) / 60000));
 
-    if (mins < 1) return "just now";
     if (mins < 60) return `${mins} min${mins !== 1 ? "s" : ""} ago`;
 
     const hrs = Math.floor(mins / 60);
@@ -230,6 +229,18 @@ function invalidateMapSoon() {
     if (days < 10) return `${days} day${days !== 1 ? "s" : ""} ago`;
 
     return new Date(t).toLocaleDateString("en-GB");
+  }
+
+  function fpDisplayIsoCappedAtCheck(iso, checkedIso) {
+    if (!iso) return null;
+
+    const t = Date.parse(iso);
+    if (!isFinite(t)) return null;
+
+    const checked = Date.parse(checkedIso || "");
+    if (!isFinite(checked)) return iso;
+
+    return t > checked ? new Date(checked).toISOString() : iso;
   }
 
   function setStatus(text) {
@@ -1072,8 +1083,11 @@ function buildMarker(st, cuts) {
     const dir = stationDirectionsUrl(st);
     const checkedText = fpFormatTimeAgoFromIso(lastCheckedAt);
 
-    const lastChanged = st.changedAt || null;
-    const lastUpdated = st.updatedAt || st.lastUpdated || st.last_update || st.timestamp || null;
+    const rawLastChanged = st.changedAt || null;
+    const rawLastUpdated = st.updatedAt || st.lastUpdated || st.last_update || st.timestamp || null;
+
+    const lastChanged = fpDisplayIsoCappedAtCheck(rawLastChanged, lastCheckedAt);
+    const lastUpdated = fpDisplayIsoCappedAtCheck(rawLastUpdated, lastCheckedAt);
 
     els.selectedCard.hidden = false;
     els.selectedCard.innerHTML = `
