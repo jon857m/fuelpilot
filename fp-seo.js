@@ -83,6 +83,51 @@ async function fpResolveStationSlugToId(slug) {
   return map[key] || null;
 }
 
+  async function fpResolveStationIdToSlug(id) {
+    const raw = String(id || "").trim().toLowerCase();
+    if (!raw) return null;
+
+    const map = await fpLoadStationSlugs(); // slug -> id
+
+    for (const [slug, mappedId] of Object.entries(map || {})) {
+      if (String(mappedId || "").trim().toLowerCase() === raw) {
+        return slug;
+      }
+    }
+
+    return null;
+  }
+
+  async function fpStationHrefFromData(stationLike) {
+    const rawId = String(
+      stationLike?._id ||
+      stationLike?.id ||
+      stationLike?.node_id ||
+      stationLike?.nodeId ||
+      ""
+    ).trim();
+
+    const rawSlug = String(
+      stationLike?.slug ||
+      stationLike?.station_slug ||
+      ""
+    ).trim();
+
+    if (rawSlug) {
+      return "/station/" + encodeURIComponent(rawSlug);
+    }
+
+    if (rawId) {
+      const slug = await fpResolveStationIdToSlug(rawId);
+      if (slug) {
+        return "/station/" + encodeURIComponent(slug);
+      }
+      return "/station/" + encodeURIComponent(rawId);
+    }
+
+    return "/station/";
+  }
+
   // NEW: simple station-page placeholder (safe, removable)
   // NEW: simple station-page placeholder (safe, removable)
   if (stationKey) {
@@ -143,14 +188,14 @@ async function fpResolveStationSlugToId(slug) {
       }
     }
 
-box.innerHTML = `
-  <div style="font-weight:800;letter-spacing:-0.02em;margin-bottom:6px;">
-    Loading station…
-  </div>
-  <div style="opacity:0.75;font-size:12px;">
-    ID: <span style="font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;">${stationKey}</span>
-  </div>
-`;
+    box.innerHTML = `
+      <div style="font-weight:800;letter-spacing:-0.02em;margin-bottom:6px;">
+        Loading station…
+      </div>
+      <div style="opacity:0.75;font-size:12px;">
+        Fetching latest station details
+      </div>
+    `;
 
 // Fetch station data from your existing API endpoint
 (async () => {
@@ -174,7 +219,7 @@ box.innerHTML = `
         Loading station…
       </div>
       <div style="opacity:0.75;font-size:12px;">
-        ID: <span style="font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;">${stationIdFromPath}</span>
+        Preparing station page
       </div>
     `;
 
@@ -439,29 +484,30 @@ box.innerHTML = `
         const filtered = list.filter(x => (x?.node_id || x?.meta?.node_id) !== stationIdFromPath).slice(0, 20);
 
         if (filtered.length) {
-          nearbyHtml = filtered.map(x => {
-        const xid = (x?.id || "").toString().trim();
-        const xbrand = (x?.brand || "").toString().trim() || "Station";
-        const xname = (x?.name || "").toString().trim();
-        const xpc = (x?.postcode || "").toString().trim();
-        const xdist = (x?.distanceMiles ?? "").toString();
+          nearbyHtml = (await Promise.all(filtered.map(async (x) => {
+            const xid = (x?.id || "").toString().trim();
+            const href = await fpStationHrefFromData(x);
+            const xbrand = (x?.brand || "").toString().trim() || "Station";
+            const xname = (x?.name || "").toString().trim();
+            const xpc = (x?.postcode || "").toString().trim();
+            const xdist = (x?.distanceMiles ?? "").toString();
 
-        if (!xid) return "";
+            if (!xid) return "";
 
-        return `
-          <a href="/station/${encodeURIComponent(xid)}"
-            style="display:flex;justify-content:space-between;gap:10px;
-                    padding:10px 0;text-decoration:none;color:#e9eef5;
-                    border-top:1px solid rgba(255,255,255,0.08);">
-            <span style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-              ${xbrand}${xname ? ` — ${xname}` : ""}
-            </span>
-            <span style="opacity:0.75;white-space:nowrap;">
-              ${xdist ? `${Number(xdist).toFixed(1)} mi` : xpc}
-            </span>
-          </a>
-        `;
-          }).join("");
+            return `
+              <a href="${href}"
+                style="display:flex;justify-content:space-between;gap:10px;
+                        padding:10px 0;text-decoration:none;color:#e9eef5;
+                        border-top:1px solid rgba(255,255,255,0.08);">
+                <span style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                  ${xbrand}${xname ? ` — ${xname}` : ""}
+                </span>
+                <span style="opacity:0.75;white-space:nowrap;">
+                  ${xdist ? `${Number(xdist).toFixed(1)} mi` : xpc}
+                </span>
+              </a>
+            `;
+          }))).join("");
         } else {
           nearbyHtml = `<div style="opacity:0.7;font-size:13px;">No nearby stations found.</div>`;
         }
