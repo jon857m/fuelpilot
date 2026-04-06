@@ -567,9 +567,13 @@ async function fpResolveStationSlugToId(slug) {
         })()
       : "";
 
-        const stationUrl = `https://fuelpilot.co.uk/station/${encodeURIComponent(
-          stationIdFromPath
-        )}`;
+      const stationPageHref = await fpStationHrefFromData({
+        id: stationIdFromPath,
+        node_id: stationIdFromPath,
+        slug: stationKeyIsId ? "" : stationKeyLower
+      });
+
+      const stationUrl = `https://fuelpilot.co.uk${stationPageHref}`;
 
         const openingHoursSpec = buildOpeningHoursSpec(usualDays);
 
