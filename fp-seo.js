@@ -646,6 +646,17 @@ async function fpResolveStationSlugToId(slug) {
 
         };
 
+        let gasStationLdEl = document.getElementById("fp-jsonld-gasstation");
+
+        if (!gasStationLdEl) {
+          gasStationLdEl = document.createElement("script");
+          gasStationLdEl.id = "fp-jsonld-gasstation";
+          gasStationLdEl.type = "application/ld+json";
+          document.head.appendChild(gasStationLdEl);
+        }
+
+        gasStationLdEl.textContent = safeJson(jsonLd);
+
 
 
     box.innerHTML = `
@@ -671,8 +682,6 @@ async function fpResolveStationSlugToId(slug) {
         .fp-st-grid { grid-template-columns: 1fr !important; }
       }
     </style>
-
-    <script id="fp-jsonld-gasstation" type="application/ld+json">${safeJson(jsonLd)}</script>
 
     <div class="fp-st-head" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
         <div>
