@@ -84,10 +84,10 @@ body.fp-embedded .fp-app {
 
 .fp-controls__top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 
@@ -111,6 +111,110 @@ body.fp-embedded .fp-app {
   justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+
+.fp-title-block{
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.fp-live-meta{
+  margin-top: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.fp-live-meta__row{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fp-live-meta__row--top{
+  font-size: 12px;
+  line-height: 1.2;
+  color: rgba(255,255,255,0.60);
+}
+
+.fp-live-meta__row--bottom{
+  font-size: 12px;
+  line-height: 1.15;
+  color: rgba(255,255,255,0.62);
+}
+
+.fp-live-dot{
+  position: relative;
+  top: -0.5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex: 0 0 8px;
+  background: rgba(72, 199, 116, 0.95);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.10),
+    0 0 10px rgba(72, 199, 116, 0.24);
+  animation: fpLivePulse 2.4s ease-in-out infinite;
+}
+
+@keyframes fpLivePulse{
+  0%, 100%{
+    transform: scale(1);
+    opacity: 0.88;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.10),
+      0 0 10px rgba(72, 199, 116, 0.18);
+  }
+  50%{
+    transform: scale(1.08);
+    opacity: 1;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.12),
+      0 0 14px rgba(72, 199, 116, 0.28);
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .fp-live-dot{
+    animation: none;
+  }
+}
+
+@media (max-width: 520px){
+  .fp-live-meta{
+    margin-top: 3px;
+    gap: 1px;
+  }
+
+  .fp-live-meta__row--top,
+  .fp-live-meta__row--bottom{
+    font-size: 11px;
+    color: rgba(255,255,255,0.68);
+  }
+}
+
+.fp-title-row{
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.fp-title-meta{
+  font-size: 12px;
+  line-height: 1;
+  color: rgba(255,255,255,0.72);
+  white-space: nowrap;
+  position: relative;
+  top: -1px;
 }
 
 /* ==========================
@@ -1432,12 +1536,20 @@ body.fp-embedded .fp-app {
   display:flex;
   gap:10px;
   align-items:center;
+  padding-top: 1px;
 }
 
 .fp-controls__divider{
-  height:1px;
-  margin:10px 0 12px 0;
-  background: rgba(255,255,255,0.10);
+  height: 1px;
+  margin: 6px 0 8px 0;
+  background: linear-gradient(
+    to right,
+    rgba(255,255,255,0.00),
+    rgba(255,255,255,0.12) 14%,
+    rgba(255,255,255,0.12) 86%,
+    rgba(255,255,255,0.00)
+  );
+  box-shadow: 0 1px 0 rgba(0,0,0,0.10);
 }
 
 .fp-controls__row{

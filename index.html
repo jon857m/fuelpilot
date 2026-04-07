@@ -150,12 +150,28 @@
 
           <!-- Top row: Brand + Icons -->
           <div class="fp-controls__top">
-            <div>
+          <div class="fp-title-block">
+            <div class="fp-title-row">
               <div class="fp-title__name">
                 <span class="fp-brand-fuel">Fuel</span><span class="fp-brand-pilot">Pilot</span>
               </div>
-              <div class="fp-title__sub" id="fpStatus">Loading…</div>
+
+              <div class="fp-title-meta">
+                Updated every 15 minutes
+              </div>
             </div>
+
+        <div class="fp-live-meta" aria-live="polite">
+          <div class="fp-live-meta__row fp-live-meta__row--top">
+            Using UK Government Fuel Finder data
+          </div>
+
+          <div class="fp-live-meta__row fp-live-meta__row--bottom">
+            <span class="fp-live-dot" aria-hidden="true"></span>
+            <span id="fpStatus">Last updated — • Next ~—</span>
+          </div>
+        </div>
+          </div>
 
             <div class="fp-controls__icons">
               <button class="fp-icon-btn" id="fpLegendBtn" type="button" aria-label="Price bands">≡</button>

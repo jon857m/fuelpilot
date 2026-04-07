@@ -231,6 +231,34 @@ function invalidateMapSoon() {
     return new Date(t).toLocaleDateString("en-GB");
   }
 
+  function fpMinsUntilNextQuarterHour(nowTs = Date.now()) {
+    const mins = new Date(nowTs).getMinutes();
+    const remainder = mins % 15;
+    const left = remainder === 0 ? 15 : (15 - remainder);
+    return left;
+  }
+
+  function fpBuildLiveStatus(lastCheckedIso) {
+    const t = Date.parse(lastCheckedIso || "");
+    const minsSince = isFinite(t)
+      ? Math.max(0, Math.floor((Date.now() - t) / 60000))
+      : null;
+
+    const checkedText = minsSince !== null
+      ? (minsSince === 0 ? "just now" : `${minsSince} min${minsSince !== 1 ? "s" : ""} ago`)
+      : "—";
+
+    let minsToNext = minsSince !== null ? Math.max(0, 15 - minsSince) : null;
+
+    return `Last updated ${checkedText} • Next ~${minsToNext} min${minsToNext !== 1 ? "s" : ""}`;
+  }
+
+    function setLiveMeta(lastCheckedIso) {
+    if (els.status) {
+      els.status.textContent = fpBuildLiveStatus(lastCheckedIso);
+    }
+  }
+
   function fpDisplayIsoCappedAtCheck(iso, checkedIso) {
     if (!iso) return null;
 
@@ -843,7 +871,7 @@ cluster = L.markerClusterGroup({
       includeMissing
     });
 
-    setStatus(`Fetching… ${shortUrl(url)}`);
+    setStatus("Updating prices…");
 
     const { res, data, text } = await tryFetchJson(url);
 
@@ -874,7 +902,7 @@ cluster = L.markerClusterGroup({
       includeMissing
     });
 
-    setStatus(`Searching area… ${shortUrl(url)}`);
+    setStatus("Updating this area…");
 
     const { res, data, text } = await tryFetchJson(url);
 
@@ -1375,7 +1403,7 @@ return `
     console.warn("[FP SEO] publish results failed", e);
   }
 
-  setStatus(`Showing ${stations.length} stations (${getPricesOnly() ? "priced only" : "incl. no-price"})`);
+  setLiveMeta(lastCheckedAt);
 
   renderList();
 
