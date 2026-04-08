@@ -685,18 +685,19 @@ async function fpResolveStationSlugToId(slug) {
 
     <div class="fp-st-head" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
         <div>
-          <div style="font-weight:900;letter-spacing:-0.02em;line-height:1.15;">
-            ${brand}${town ? ` in ${town}` : ""}
-          </div>
-        <div style="opacity:0.8;font-size:13px;margin-top:6px;line-height:1.35;">
-          ${name ? `${name}<br>` : ""}
-          ${line1 ? `${line1}<br>` : ""}
-          ${postcode ? postcode : ""}
-          ${phoneLine}
-          ${brandLogo}
-          ${openingHtml}
-          ${amenitiesHtml}
-        </div>
+    <div style="font-weight:900;letter-spacing:-0.02em;line-height:1.15;">
+      ${name || brand || "Fuel station"}
+    </div>
+
+    <div style="opacity:0.92;font-size:13px;margin-top:6px;line-height:1.35;">
+      ${brand ? `<div style="font-weight:700;opacity:0.75;font-size:12px;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:4px;">${brand}</div>` : ""}
+      ${line1 ? `${line1}<br>` : ""}
+      ${postcode ? postcode : ""}
+      ${phoneLine}
+      ${brandLogo}
+      ${openingHtml}
+      ${amenitiesHtml}
+    </div>
         </div>
       <div class="fp-st-cta" style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex-shrink:0;">
 
