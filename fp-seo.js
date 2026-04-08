@@ -1490,19 +1490,24 @@ const raw = cleanedBase || String((p && p.slug) || "").trim();
     // ✅ SAFE: only set if nodes exist (no crashes)
     const els = renderSeoScaffold({
       heading: `Cheap ${fuelTitle} in ${placeLabel} and nearby`,
-      introText: `Live ${fuelTitle} prices around ${placeLabel}. Pan the map and use “Search this area” to refresh nearby stations.`,
-      statItems: ["Map-first", "Compare nearby areas", "Fast to use"]
+      introText: `Find live ${fuelLabel} prices in ${placeLabel} and nearby with FuelPilot. Prices are updated every 15 minutes using UK Government data, helping you compare local stations and find the cheapest fuel right now.`,
+      statItems: [
+        `Live ${fuelLabel} map`,
+        `Nearby stations compared`,
+        `Updated every 15 minutes`
+      ]
     });
 
     const body = els && els.body;
     if (body) {
     body.innerHTML = `
-      <p>FuelPilot shows <strong>${fuelLabel}</strong> prices on a live map for <strong>${placeLabel}</strong> and nearby areas.</p>
-      <p>Pan or zoom, then tap <strong>Search this area</strong> to refresh results for what’s on screen.</p>
+      <p>FuelPilot shows <strong>${fuelLabel}</strong> prices on a live map for <strong>${placeLabel}</strong> and nearby areas, making it easier to compare local forecourts at a glance.</p>
 
-      <p><strong>${fuelTitle} near ${placeLabel}</strong>: compare nearby forecourts and find cheaper prices.</p>
-      <p>View <strong>${fuelTitle} stations in ${placeLabel}</strong> and check today’s updates.</p>
-      <p>See <strong>${fuelTitle} prices in ${placeLabel}</strong> compared with nearby areas.</p>
+      <p>Prices are updated every 15 minutes using UK Government Fuel Finder data. Pan or zoom the map, then tap <strong>Search this area</strong> to refresh the stations currently in view.</p>
+
+      <p><strong>${fuelTitle} prices in ${placeLabel}</strong> can vary noticeably between nearby stations, so checking the map before you fill up can help you spot cheaper options nearby.</p>
+
+      <p>Use this page to compare <strong>${fuelLabel}</strong> stations in <strong>${placeLabel}</strong>, review today’s prices, and explore nearby petrol and diesel pages across the surrounding area.</p>
     `;
       fpLoadPlaces()
         .then((places) => {
@@ -1591,13 +1596,13 @@ const raw = cleanedBase || String((p && p.slug) || "").trim();
           for (const p of cluster) {
             const slug = p.slug;
             const name = p.name || slug;
-            const label = name.split(",")[0];
+            const label = (name.split(",")[0] || "").toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 
             const pHref = "/fuel/petrol/" + encodeURIComponent(slug) + "/";
             const dHref = "/fuel/diesel/" + encodeURIComponent(slug) + "/";
 
-        petrolLinks += '<a href="' + pHref + '" data-fp-href="' + pHref + '">' + label + "</a> ";
-        dieselLinks += '<a href="' + dHref + '" data-fp-href="' + dHref + '">' + label + "</a> ";
+      petrolLinks += '<a href="' + pHref + '" data-fp-href="' + pHref + '">' + label + ' petrol</a> ';
+      dieselLinks += '<a href="' + dHref + '" data-fp-href="' + dHref + '">' + label + ' diesel</a> ';
                       }
 
           const html =
@@ -1630,11 +1635,11 @@ const raw = cleanedBase || String((p && p.slug) || "").trim();
     }
 
     // Title + meta description + canonical
-    document.title = `Cheap ${fuelLabel} in ${placeLabel} and nearby | FuelPilot`;
+    document.title = `Cheap ${fuelLabel} in ${placeLabel} | Compare ${fuelLabel} prices today | FuelPilot`;
 
     ensureMeta("description").setAttribute(
       "content",
-      `Live ${fuelLabel} prices in ${placeLabel} and nearby. Compare stations on a map and find cheaper fuel fast.`
+      `Find cheap ${fuelLabel} in ${placeLabel} today. Compare live fuel prices updated every 15 minutes using UK Government data and see the lowest prices near you.`
     );
 
     // Canonical: prefer clean path
