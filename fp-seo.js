@@ -1696,7 +1696,80 @@ const raw = cleanedBase || String((p && p.slug) || "").trim();
       `Find cheap ${fuelLabel} in ${placeLabel} today. Compare live fuel prices near you.`
     );
 
+  
+
+      // --- Location page JSON-LD ---
+    const pageUrl = location.origin + location.pathname.replace(/\/?$/, "/");
+    const fuelSlug = fuelLabel.toLowerCase();
+    const titleCaseFuel = fuelTitle;
+    const pageTitle = `Cheap ${fuelLabel} in ${placeLabel} | Compare ${fuelLabel} prices today | FuelPilot`;
+    const pageDesc = `Find cheap ${fuelLabel} in ${placeLabel} today. Compare live fuel prices updated every 15 minutes using UK Government data and see the lowest prices near you.`;
+
+    const breadcrumbLd = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "FuelPilot",
+          "item": "https://fuelpilot.co.uk/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": titleCaseFuel,
+          "item": `https://fuelpilot.co.uk/fuel/${fuelSlug}/`
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": placeLabel,
+          "item": pageUrl
+        }
+      ]
+    };
+
+    const collectionPageLd = {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "@id": pageUrl + "#webpage",
+      "url": pageUrl,
+      "name": pageTitle,
+      "description": pageDesc,
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "FuelPilot",
+        "url": "https://fuelpilot.co.uk/"
+      },
+      "about": {
+        "@type": "Thing",
+        "name": `${titleCaseFuel} prices in ${placeLabel}`
+      },
+      "keywords": [
+        `${fuelLabel} prices ${placeLabel}`,
+        `cheap ${fuelLabel} ${placeLabel}`,
+        `${fuelLabel} prices today ${placeLabel}`
+      ],
+      "publisher": {
+        "@type": "Organization",
+        "name": "FuelPilot",
+        "url": "https://fuelpilot.co.uk/"
+      }
+    };
+
+    let locationLdEl = document.getElementById("fp-jsonld-location");
+    if (!locationLdEl) {
+      locationLdEl = document.createElement("script");
+      locationLdEl.id = "fp-jsonld-location";
+      locationLdEl.type = "application/ld+json";
+      document.head.appendChild(locationLdEl);
+    }
+
+    locationLdEl.textContent = JSON.stringify([collectionPageLd, breadcrumbLd]).replace(/</g, "\\u003c");
+
   }
+
 
   function trySetFuel(route) {
     const sel = document.getElementById("fpFuelSelect");
