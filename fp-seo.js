@@ -1343,6 +1343,12 @@ const raw = cleanedBase || String((p && p.slug) || "").trim();
     const fuelLabel = route && route.fuel === "diesel" ? "diesel" : "petrol";
     const uiFuel = route && route.fuel === "diesel" ? "DIESEL" : "E10";
 
+    const rawPlaceName = (route && route.name) || "";
+    const placeName = String(rawPlaceName)
+      .toLowerCase()
+      .replace(/\b\w/g, c => c.toUpperCase())
+      .replace(/\bUk\b/g, "UK");
+
     function esc(v) {
       return String(v == null ? "" : v)
         .replaceAll("&", "&amp;")
