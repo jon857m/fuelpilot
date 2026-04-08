@@ -1,4 +1,6 @@
-/data/*  /data/:splat  200
-/*.json  /:splat       200
+/data/*      /data/:splat   200
+/*.json      /:splat        200
 
-/fuel/*    /index.html   200
+/station     /              301
+/station/    /              301
+/fuel/*      /index.html    200
