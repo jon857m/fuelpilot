@@ -1480,7 +1480,11 @@ const raw = cleanedBase || String((p && p.slug) || "").trim();
 
   function renderSeo(route) {
     const fuelLabel = route.fuel === "diesel" ? "diesel" : "petrol";
-    const placeLabel = route.name;
+    const rawPlaceLabel = route.name || "";
+    const placeLabel = String(rawPlaceLabel)
+      .toLowerCase()
+      .replace(/\b\w/g, c => c.toUpperCase())
+      .replace(/\bUk\b/g, "UK");
     const fuelTitle = fuelLabel.charAt(0).toUpperCase() + fuelLabel.slice(1);
 
    fpLoadPlaces()
@@ -1645,6 +1649,53 @@ const raw = cleanedBase || String((p && p.slug) || "").trim();
     // Canonical: prefer clean path
     const canon = ensureCanonical();
     canon.setAttribute("href", location.origin + location.pathname.replace(/\/?$/, "/"));
+    // --- OG + Social tags ---
+
+    function ensureProp(prop) {
+      let tag = document.querySelector(`meta[property="${prop}"]`);
+      if (!tag) {
+        tag = document.createElement("meta");
+        tag.setAttribute("property", prop);
+        document.head.appendChild(tag);
+      }
+      return tag;
+    }
+
+    function ensureTw(name) {
+      let tag = document.querySelector(`meta[name="${name}"]`);
+      if (!tag) {
+        tag = document.createElement("meta");
+        tag.setAttribute("name", name);
+        document.head.appendChild(tag);
+      }
+      return tag;
+    }
+
+    ensureProp("og:title").setAttribute(
+      "content",
+      `Cheap ${fuelLabel} in ${placeLabel} | FuelPilot`
+    );
+
+    ensureProp("og:description").setAttribute(
+      "content",
+      `Find cheap ${fuelLabel} in ${placeLabel} today. Compare live fuel prices and see the lowest prices near you.`
+    );
+
+    ensureProp("og:url").setAttribute(
+      "content",
+      location.origin + location.pathname.replace(/\/?$/, "/")
+    );
+
+    ensureTw("twitter:title").setAttribute(
+      "content",
+      `Cheap ${fuelLabel} in ${placeLabel} | FuelPilot`
+    );
+
+    ensureTw("twitter:description").setAttribute(
+      "content",
+      `Find cheap ${fuelLabel} in ${placeLabel} today. Compare live fuel prices near you.`
+    );
+
   }
 
   function trySetFuel(route) {
