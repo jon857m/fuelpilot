@@ -481,15 +481,7 @@ async function fpResolveStationSlugToId(slug) {
         console.log("[Station SEO] first station node_id/meta.node_id:", list[0]?.node_id, list[0]?.meta?.node_id);
 
         // Remove itself, then take first 20
-        const currentId = fpNodeId(stationIdFromPath);
-
-        const filtered = list
-          .filter(x => {
-            const id = fpNodeId(x?.node_id || x?.meta?.node_id || x?.id);
-            if (!id) return true;
-            return id !== currentId;
-          })
-          .slice(0, 20);
+        const filtered = list.filter(x => (x?.node_id || x?.meta?.node_id) !== stationIdFromPath).slice(0, 20);
 
         if (filtered.length) {
           nearbyHtml = (await Promise.all(filtered.map(async (x) => {
@@ -783,11 +775,6 @@ async function fpResolveStationSlugToId(slug) {
   }
 })();
   }
-
-  function fpNodeId(v) {
-    return String(v || "").trim();
-  }
-
 
   // Force Search-this-area visibility after landing
   window.__FP_SEO_FORCE_SEARCH_AREA__ = true;
