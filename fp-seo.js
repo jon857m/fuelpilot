@@ -1250,7 +1250,7 @@ const raw = cleanedBase || String((p && p.slug) || "").trim();
             cluster.push(p);
             seen.add(base);
 
-            if (cluster.length === 8) return true;
+            if (cluster.length === 12) return true;
           }
           return false;
         }
@@ -1261,7 +1261,7 @@ const raw = cleanedBase || String((p && p.slug) || "").trim();
 
         pushFrom(candidates.filter((p) => fpTypeScore(p) === 0));
 
-        if (cluster.length < 8) {
+        if (cluster.length < 12) {
           if (!isTownPage) {
             pushFrom(candidates.filter((p) => fpTypeScore(p) !== 0));
           }
@@ -1579,7 +1579,7 @@ const raw = cleanedBase || String((p && p.slug) || "").trim();
             cluster.push(p);
             seen.add(base);
 
-            if (cluster.length === 8) return true;
+            if (cluster.length === 12) return true;
           }
           return false;
         }
@@ -1589,7 +1589,7 @@ const raw = cleanedBase || String((p && p.slug) || "").trim();
         // Pass 1: always towns first
         pushFrom(candidates.filter(p => fpTypeScore(p) === 0));
 
-        if (cluster.length < 8) {
+        if (cluster.length < 12) {
           if (isTownPage) {
             // On town pages: don't use admin/county/district fallbacks
             // (better to show fewer than add "Essex")
