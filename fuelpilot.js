@@ -1922,26 +1922,34 @@
 
     // Initial search
     // Initial search
+    // Initial search
     const regionKey = readLS(LS.region, "central");
     const preset = PRESETS[regionKey] || PRESETS.central;
 
-    const c = map.getCenter();
-    try {
-      const hasSharedMapState = applySharedMapStateFromUrl();
+      try {
+        const hasSharedMapState = applySharedMapStateFromUrl();
 
-      if (hasSharedMapState) {
-        invalidateMapSoon();
-        await new Promise((r) => setTimeout(r, 250));
-        await runSearchAreaViewport();
-      } else {
-        await runSearchPresetOrRefresh({ lat: c.lat, lng: c.lng }, preset);
+        if (hasSharedMapState) {
+          invalidateMapSoon();
+          await new Promise((r) => setTimeout(r, 250));
+          await runSearchAreaViewport();
+        } else if (window.__FP_SEO_MODE__) {
+          // SEO location pages are driven by fp-seo.js via applyRoute()/driveSearch().
+          // Do not run a generic first fetch from the current map centre here,
+          // otherwise Google can snapshot the wrong region before the SEO route applies.
+          stations = [];
+          updateSearchAreaButton();
+          setStatus("SEO route pending…");
+        } else {
+          const c = map.getCenter();
+          await runSearchPresetOrRefresh({ lat: c.lat, lng: c.lng }, preset);
+        }
+      } catch (err) {
+        console.error(err);
+        setStatus(`Error: ${err.message || "Search failed"}`);
+        stations = [];
+        updateSearchAreaButton();
       }
-    } catch (err) {
-      console.error(err);
-      setStatus(`Error: ${err.message || "Search failed"}`);
-      stations = [];
-      updateSearchAreaButton();
-    }
   }
 
   // -----------------------------
