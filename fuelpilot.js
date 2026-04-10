@@ -14,112 +14,153 @@
   window.__FP_BOOT_TS__ = Date.now();
 
   console.info("[FuelPilot] boot OK", new Date().toISOString());
-  
+
   const DEFAULT_API_BASE = "https://fuelpilot-api.jonmargree.workers.dev";
-  const API_BASE = (window.FP_API_BASE && String(window.FP_API_BASE).trim()) || DEFAULT_API_BASE;
+  const API_BASE =
+    (window.FP_API_BASE && String(window.FP_API_BASE).trim()) ||
+    DEFAULT_API_BASE;
 
   // -----------------------------
-// Feature flags
-// -----------------------------
-const FP_ENABLE_BRAND_BADGES = true;   // master on/off
-const FP_BRAND_BADGE_ZOOM = null;      // set to a number like 11 to only show at/above that zoom; or null = always show (when enabled)
+  // Feature flags
+  // -----------------------------
+  const FP_ENABLE_BRAND_BADGES = true; // master on/off
+  const FP_BRAND_BADGE_ZOOM = null; // set to a number like 11 to only show at/above that zoom; or null = always show (when enabled)
 
   const LS = {
     fuel: "fp_fuel",
-    sort: "fp_sort",           // "price" | "distance"
+    sort: "fp_sort", // "price" | "distance"
     region: "fp_region",
-    map: "fp_map",             // {lat,lng,zoom}
-    pricesOnly: "fp_prices_only" // "1" (prices only) | "0" (include no-price)
+    map: "fp_map", // {lat,lng,zoom}
+    pricesOnly: "fp_prices_only", // "1" (prices only) | "0" (include no-price)
   };
 
   const PRESETS = {
-        lakes:   { name: "Lakes (wide)",   lat: 54.55, lng: -3.15, zoom: 10, radiusMiles: 28,  limit: 250 },
-        north:   { name: "North Lakes",    lat: 54.70, lng: -3.00, zoom: 11, radiusMiles: 16,  limit: 200 },
-        central: { name: "Central Lakes",  lat: 54.55, lng: -3.15, zoom: 11, radiusMiles: 16,  limit: 200 },
-        south:   { name: "South Lakes",    lat: 54.25, lng: -2.95, zoom: 11, radiusMiles: 16,  limit: 200 },
-        seo:     { name: "UK",             lat: 54.5,  lng: -3.0,  zoom: 6,  radiusMiles: 120, limit: 250 } // neutral UK view
-      };
+    lakes: {
+      name: "Lakes (wide)",
+      lat: 54.55,
+      lng: -3.15,
+      zoom: 10,
+      radiusMiles: 28,
+      limit: 250,
+    },
+    north: {
+      name: "North Lakes",
+      lat: 54.7,
+      lng: -3.0,
+      zoom: 11,
+      radiusMiles: 16,
+      limit: 200,
+    },
+    central: {
+      name: "Central Lakes",
+      lat: 54.55,
+      lng: -3.15,
+      zoom: 11,
+      radiusMiles: 16,
+      limit: 200,
+    },
+    south: {
+      name: "South Lakes",
+      lat: 54.25,
+      lng: -2.95,
+      zoom: 11,
+      radiusMiles: 16,
+      limit: 200,
+    },
+    seo: {
+      name: "UK",
+      lat: 54.5,
+      lng: -3.0,
+      zoom: 6,
+      radiusMiles: 120,
+      limit: 250,
+    }, // neutral UK view
+  };
 
   function isInView(st) {
     if (!map) return false;
 
     const lat = Number(st.lat != null ? st.lat : st.latitude);
-    const lng = Number(st.lng != null ? st.lng : (st.lon != null ? st.lon : st.longitude));
+    const lng = Number(
+      st.lng != null ? st.lng : st.lon != null ? st.lon : st.longitude,
+    );
 
     if (!isFinite(lat) || !isFinite(lng)) return false;
 
     return map.getBounds().contains([lat, lng]);
   }
 
-// -----------------------------
-// Feature flag: Brand badges
-// -----------------------------
+  // -----------------------------
+  // Feature flag: Brand badges
+  // -----------------------------
 
-function fpNormalizeBrand(raw) {
-  const s = String(raw || "").trim().toLowerCase();
-  if (!s) return null;
+  function fpNormalizeBrand(raw) {
+    const s = String(raw || "")
+      .trim()
+      .toLowerCase();
+    if (!s) return null;
 
-  if (s.includes("shell")) return "shell";
-  if (s === "bp" || s.includes(" bp")) return "bp";
-  if (s.replace(/\s+/g, "").includes("bp")) return "bp";
-  if (s.includes("esso")) return "esso";
-  if (s.includes("texaco")) return "texaco";
-  if (s.includes("tesco")) return "tesco";
-  if (s.includes("asda")) return "asda";
-  if (s.includes("morrisons")) return "morrisons";
-  if (s.includes("sainsbury")) return "sainsburys";
-  if (s.includes("gulf")) return "gulf";
-  if (s.includes("jet")) return "jet";
-  if (s.includes("essar")) return "essar";
-  if (s.includes("costco")) return "costco";
-  if (s.includes("4 elms")) return "jet";
-  if (s.includes("applegreen")) return "applegreen";
-  if (s.includes("co-op")) return "coopc";
-  if (s.includes("central convenience")) return "centralconvenience";
-  if (s.includes("cirlce k")) return "circlek";
-  if (s.includes("eg on the move")) return "eg";
-  if (/\bemo\b/.test(s)) return "emo";
-  if (s.includes("maxol")) return "maxol";
-  if (s.includes("murco")) return "murco";
-  if (s.includes("nicholl auto 365")) return "nicholl";
-  if (s.includes("pace")) return "pace";
-  if (s.includes("spar")) return "spar";
-  if (s.includes("total")) return "total";
-  if (s.includes("valero")) return "valero";
-  if (s.includes("welcome break")) return "wb";
+    if (s.includes("shell")) return "shell";
+    if (s === "bp" || s.includes(" bp")) return "bp";
+    if (s.replace(/\s+/g, "").includes("bp")) return "bp";
+    if (s.includes("esso")) return "esso";
+    if (s.includes("texaco")) return "texaco";
+    if (s.includes("tesco")) return "tesco";
+    if (s.includes("asda")) return "asda";
+    if (s.includes("morrisons")) return "morrisons";
+    if (s.includes("sainsbury")) return "sainsburys";
+    if (s.includes("gulf")) return "gulf";
+    if (s.includes("jet")) return "jet";
+    if (s.includes("essar")) return "essar";
+    if (s.includes("costco")) return "costco";
+    if (s.includes("4 elms")) return "jet";
+    if (s.includes("applegreen")) return "applegreen";
+    if (s.includes("co-op")) return "coopc";
+    if (s.includes("central convenience")) return "centralconvenience";
+    if (s.includes("cirlce k")) return "circlek";
+    if (s.includes("eg on the move")) return "eg";
+    if (/\bemo\b/.test(s)) return "emo";
+    if (s.includes("maxol")) return "maxol";
+    if (s.includes("murco")) return "murco";
+    if (s.includes("nicholl auto 365")) return "nicholl";
+    if (s.includes("pace")) return "pace";
+    if (s.includes("spar")) return "spar";
+    if (s.includes("total")) return "total";
+    if (s.includes("valero")) return "valero";
+    if (s.includes("welcome break")) return "wb";
 
-  return null;
-}
+    return null;
+  }
 
-// Brand icon extensions (only exceptions; default is svg)
-const FP_BRAND_ICON_EXT = {
-  // You have these as PNG/JPG in assets/brands
-  murco: "png",
-  maxol: "png",
-  pace: "png",
-  total: "png",
-  emo: "png",
-  wb: "png",
-  centralconvenience: "png",
+  // Brand icon extensions (only exceptions; default is svg)
+  const FP_BRAND_ICON_EXT = {
+    // You have these as PNG/JPG in assets/brands
+    murco: "png",
+    maxol: "png",
+    pace: "png",
+    total: "png",
+    emo: "png",
+    wb: "png",
+    centralconvenience: "png",
 
-  // This one is jpg in your folder
-  nicholl: "jpg",
-};
+    // This one is jpg in your folder
+    nicholl: "jpg",
+  };
 
-function fpBrandIconUrl(brand) {
-  const ext = FP_BRAND_ICON_EXT[brand] || "svg";
-  return `/assets/brands/${brand}.${ext}`;
-}
+  function fpBrandIconUrl(brand) {
+    const ext = FP_BRAND_ICON_EXT[brand] || "svg";
+    return `/assets/brands/${brand}.${ext}`;
+  }
 
-function fpBrandBadgeHTML(st) {
-  if (!FP_ENABLE_BRAND_BADGES) return "";
+  function fpBrandBadgeHTML(st) {
+    if (!FP_ENABLE_BRAND_BADGES) return "";
 
-  const brand = fpNormalizeBrand(st.brand || st.operator || st.retailer);
-  if (!brand) return "";
+    const brand = fpNormalizeBrand(st.brand || st.operator || st.retailer);
+    if (!brand) return "";
 
-  const src0 = fpBrandIconUrl(brand);
+    const src0 = fpBrandIconUrl(brand);
 
-  return `
+    return `
     <span class="fp-brand-badge fp-brand-${brand}">
       <img src="${src0}" alt="" loading="lazy"
         onerror="
@@ -134,50 +175,55 @@ function fpBrandBadgeHTML(st) {
       />
     </span>
   `;
-}
-
-function recolorForViewport() {
-  if (!stations || !stations.length || !map || !cluster) return;
-
-  const withPrices = stations.filter((s) => s._priceNum != null && isFinite(s._priceNum));
-  if (!withPrices.length) return;
-
-  const inViewWithPrices = withPrices.filter(isInView);   
-
-  const cutsGlobal = computeQuintiles(withPrices).cuts;
-  const cutsView = computeQuintiles(inViewWithPrices).cuts;
-
-  // Use viewport cuts if we have enough priced stations visible, otherwise fall back
-  const cuts = (inViewWithPrices.length >= 10 && cutsView) ? cutsView : cutsGlobal;
-
-  window.__FP_CUTS = cuts;
-
-  // Rebuild markers + list (NO refetch)
-  clearMarkers();
-  for (let i = 0; i < stations.length; i++) {
-    const m = buildMarker(stations[i], cuts);
-    if (m) cluster.addLayer(m);
   }
 
-  renderList();
+  function recolorForViewport() {
+    if (!stations || !stations.length || !map || !cluster) return;
 
-  if (activeMarkerId) setActiveFlag(activeMarkerId);
-}
+    const withPrices = stations.filter(
+      (s) => s._priceNum != null && isFinite(s._priceNum),
+    );
+    if (!withPrices.length) return;
 
-function invalidateMapSoon() {
-  if (!map) return;
+    const inViewWithPrices = withPrices.filter(isInView);
 
-  // Next frame + delayed passes catch layout settling (iOS/Safari, fonts, drawer)
-  requestAnimationFrame(() => map.invalidateSize({ pan: false }));
-  setTimeout(() => map.invalidateSize({ pan: false }), 200);
-  setTimeout(() => map.invalidateSize({ pan: false }), 450);
+    const cutsGlobal = computeQuintiles(withPrices).cuts;
+    const cutsView = computeQuintiles(inViewWithPrices).cuts;
 
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => {
-      if (map) map.invalidateSize({ pan: false });
-    }).catch(() => {});
+    // Use viewport cuts if we have enough priced stations visible, otherwise fall back
+    const cuts =
+      inViewWithPrices.length >= 10 && cutsView ? cutsView : cutsGlobal;
+
+    window.__FP_CUTS = cuts;
+
+    // Rebuild markers + list (NO refetch)
+    clearMarkers();
+    for (let i = 0; i < stations.length; i++) {
+      const m = buildMarker(stations[i], cuts);
+      if (m) cluster.addLayer(m);
+    }
+
+    renderList();
+
+    if (activeMarkerId) setActiveFlag(activeMarkerId);
   }
-}
+
+  function invalidateMapSoon() {
+    if (!map) return;
+
+    // Next frame + delayed passes catch layout settling (iOS/Safari, fonts, drawer)
+    requestAnimationFrame(() => map.invalidateSize({ pan: false }));
+    setTimeout(() => map.invalidateSize({ pan: false }), 200);
+    setTimeout(() => map.invalidateSize({ pan: false }), 450);
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready
+        .then(() => {
+          if (map) map.invalidateSize({ pan: false });
+        })
+        .catch(() => {});
+    }
+  }
 
   // -----------------------------
   // DOM helpers
@@ -234,7 +280,7 @@ function invalidateMapSoon() {
   function fpMinsUntilNextQuarterHour(nowTs = Date.now()) {
     const mins = new Date(nowTs).getMinutes();
     const remainder = mins % 15;
-    const left = remainder === 0 ? 15 : (15 - remainder);
+    const left = remainder === 0 ? 15 : 15 - remainder;
     return left;
   }
 
@@ -244,16 +290,19 @@ function invalidateMapSoon() {
       ? Math.max(0, Math.floor((Date.now() - t) / 60000))
       : null;
 
-    const checkedText = minsSince !== null
-      ? (minsSince === 0 ? "just now" : `${minsSince} min${minsSince !== 1 ? "s" : ""} ago`)
-      : "—";
+    const checkedText =
+      minsSince !== null
+        ? minsSince === 0
+          ? "just now"
+          : `${minsSince} min${minsSince !== 1 ? "s" : ""} ago`
+        : "—";
 
     let minsToNext = minsSince !== null ? Math.max(0, 15 - minsSince) : null;
 
     return `Last updated ${checkedText} • Next ~${minsToNext} min${minsToNext !== 1 ? "s" : ""}`;
   }
 
-    function setLiveMeta(lastCheckedIso) {
+  function setLiveMeta(lastCheckedIso) {
     if (els.status) {
       els.status.textContent = fpBuildLiveStatus(lastCheckedIso);
     }
@@ -275,7 +324,7 @@ function invalidateMapSoon() {
     if (els.status) els.status.textContent = text;
   }
 
-    function showShareToast(message) {
+  function showShareToast(message) {
     if (!els.shareToast) return;
 
     els.shareToast.textContent = message;
@@ -293,28 +342,30 @@ function invalidateMapSoon() {
   }
 
   function getShareFuelParam() {
-    const v = String((els.fuelSelect && els.fuelSelect.value) || readLS(LS.fuel, "E10")).toUpperCase();
+    const v = String(
+      (els.fuelSelect && els.fuelSelect.value) || readLS(LS.fuel, "E10"),
+    ).toUpperCase();
     return v;
   }
 
-    function getShareUrl() {
-      if (!map || typeof map.getCenter !== "function") {
-        return new URL("/", window.location.origin).toString();
-      }
-
-      const center = map.getCenter();
-      const zoom = typeof map.getZoom === "function" ? map.getZoom() : 12;
-
-      // Always share the clean root map URL, never the current SEO/station path
-      const url = new URL("/", window.location.origin);
-
-      url.searchParams.set("lat", Number(center.lat).toFixed(5));
-      url.searchParams.set("lng", Number(center.lng).toFixed(5));
-      url.searchParams.set("zoom", String(zoom));
-      url.searchParams.set("fuel", getShareFuelParam());
-
-      return url.toString();
+  function getShareUrl() {
+    if (!map || typeof map.getCenter !== "function") {
+      return new URL("/", window.location.origin).toString();
     }
+
+    const center = map.getCenter();
+    const zoom = typeof map.getZoom === "function" ? map.getZoom() : 12;
+
+    // Always share the clean root map URL, never the current SEO/station path
+    const url = new URL("/", window.location.origin);
+
+    url.searchParams.set("lat", Number(center.lat).toFixed(5));
+    url.searchParams.set("lng", Number(center.lng).toFixed(5));
+    url.searchParams.set("zoom", String(zoom));
+    url.searchParams.set("fuel", getShareFuelParam());
+
+    return url.toString();
+  }
 
   async function copyText(text) {
     if (navigator.clipboard && window.isSecureContext) {
@@ -340,32 +391,31 @@ function invalidateMapSoon() {
     }
   }
 
-    async function handleShareMap() {
-      const shareUrl = getShareUrl();
-      const shareData = {
-        title: "FuelPilot",
-        url: shareUrl
-      };
+  async function handleShareMap() {
+    const shareUrl = getShareUrl();
+    const shareData = {
+      title: "FuelPilot",
+      url: shareUrl,
+    };
 
-      const isLocalHost =
-        location.hostname === "127.0.0.1" ||
-        location.hostname === "localhost";
+    const isLocalHost =
+      location.hostname === "127.0.0.1" || location.hostname === "localhost";
 
-      try {
-        if (navigator.share && !isLocalHost) {
-          await navigator.share(shareData);
-          return;
-        }
-
-        const copied = await copyText(shareUrl);
-        showShareToast(copied ? "Link copied" : "Unable to copy link");
-      } catch (err) {
-        if (err && err.name === "AbortError") return;
-
-        const copied = await copyText(shareUrl);
-        showShareToast(copied ? "Link copied" : "Unable to copy link");
+    try {
+      if (navigator.share && !isLocalHost) {
+        await navigator.share(shareData);
+        return;
       }
+
+      const copied = await copyText(shareUrl);
+      showShareToast(copied ? "Link copied" : "Unable to copy link");
+    } catch (err) {
+      if (err && err.name === "AbortError") return;
+
+      const copied = await copyText(shareUrl);
+      showShareToast(copied ? "Link copied" : "Unable to copy link");
     }
+  }
 
   function applySharedMapStateFromUrl() {
     const params = new URLSearchParams(window.location.search || "");
@@ -383,7 +433,9 @@ function invalidateMapSoon() {
     }
 
     if (fuel && els.fuelSelect) {
-      const valid = Array.from(els.fuelSelect.options).some((o) => String(o.value).toUpperCase() === fuel);
+      const valid = Array.from(els.fuelSelect.options).some(
+        (o) => String(o.value).toUpperCase() === fuel,
+      );
       if (valid) {
         els.fuelSelect.value = fuel;
         writeLS(LS.fuel, fuel);
@@ -393,241 +445,252 @@ function invalidateMapSoon() {
     return hasCoords;
   }
 
-// -----------------------------
-// Location search (autocomplete) — UK only
-// - 3+ chars
-// - debounce
-// - tap result pans + auto refresh (Search this area)
-// - dims other controls while active
-// -----------------------------
-function initLocationSearch() {
-  if (!els.searchInput || !els.searchResults) return;
+  // -----------------------------
+  // Location search (autocomplete) — UK only
+  // - 3+ chars
+  // - debounce
+  // - tap result pans + auto refresh (Search this area)
+  // - dims other controls while active
+  // -----------------------------
+  function initLocationSearch() {
+    if (!els.searchInput || !els.searchResults) return;
 
-  const controlsEl = document.querySelector(".fp-controls");
-  const input = els.searchInput;
-  const box = els.searchResults;
+    const controlsEl = document.querySelector(".fp-controls");
+    const input = els.searchInput;
+    const box = els.searchResults;
 
-  let timer = null;
-  let lastQuery = "";
-  let results = [];
-  let active = false;
-  let aborter = null;
+    let timer = null;
+    let lastQuery = "";
+    let results = [];
+    let active = false;
+    let aborter = null;
 
-  const MIN_CHARS = 3;
-  const MAX_RESULTS = 5;
-  const DEBOUNCE_MS = 300;
+    const MIN_CHARS = 3;
+    const MAX_RESULTS = 5;
+    const DEBOUNCE_MS = 300;
 
-  function setActive(v) {
-    active = !!v;
-    if (!controlsEl) return;
-    controlsEl.classList.toggle("is-searching", active);
-  }
-
-  function closeBox() {
-    box.hidden = true;
-    box.innerHTML = "";
-    results = [];
-    setActive(false);
-  }
-
-  function openBox() {
-    box.hidden = false;
-    setActive(true);
-  }
-
-  function escapeHtmlLite(s) {
-    return String(s || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
-
-  function render(list) {
-    results = list || [];
-    if (!results.length) {
-      closeBox();
-      return;
+    function setActive(v) {
+      active = !!v;
+      if (!controlsEl) return;
+      controlsEl.classList.toggle("is-searching", active);
     }
 
-  function setRobotsMeta(content) {
-    try {
-      let tag = document.querySelector('meta[name="robots"]');
-      if (!tag) {
-        tag = document.createElement("meta");
-        tag.setAttribute("name", "robots");
-        document.head.appendChild(tag);
+    function closeBox() {
+      box.hidden = true;
+      box.innerHTML = "";
+      results = [];
+      setActive(false);
+    }
+
+    function openBox() {
+      box.hidden = false;
+      setActive(true);
+    }
+
+    function escapeHtmlLite(s) {
+      return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function render(list) {
+      results = list || [];
+      if (!results.length) {
+        closeBox();
+        return;
       }
-      tag.setAttribute("content", content);
-    } catch (e) {
-      // Never break the app because of meta
-      console.warn("[FuelPilot] setRobotsMeta failed:", e);
-    }
-  }
 
+      function setRobotsMeta(content) {
+        try {
+          let tag = document.querySelector('meta[name="robots"]');
+          if (!tag) {
+            tag = document.createElement("meta");
+            tag.setAttribute("name", "robots");
+            document.head.appendChild(tag);
+          }
+          tag.setAttribute("content", content);
+        } catch (e) {
+          // Never break the app because of meta
+          console.warn("[FuelPilot] setRobotsMeta failed:", e);
+        }
+      }
 
-    openBox();
+      openBox();
 
-    box.innerHTML = results
-      .slice(0, MAX_RESULTS)
-      .map((r, idx) => {
-        const main = r.main || r.display || r.name || "Result";
-        const sub = r.sub || r.context || "";
-        return `
+      box.innerHTML = results
+        .slice(0, MAX_RESULTS)
+        .map((r, idx) => {
+          const main = r.main || r.display || r.name || "Result";
+          const sub = r.sub || r.context || "";
+          return `
           <div class="fp-suggest" data-idx="${idx}" role="button" tabindex="0">
             <div class="fp-suggest__main">${escapeHtmlLite(main)}</div>
             ${sub ? `<div class="fp-suggest__sub">${escapeHtmlLite(sub)}</div>` : ""}
           </div>
         `;
-      })
-      .join("");
+        })
+        .join("");
 
-    // click handlers
-    const items = box.querySelectorAll(".fp-suggest");
-    for (let i = 0; i < items.length; i++) {
-      items[i].addEventListener("click", () => chooseIndex(i));
+      // click handlers
+      const items = box.querySelectorAll(".fp-suggest");
+      for (let i = 0; i < items.length; i++) {
+        items[i].addEventListener("click", () => chooseIndex(i));
+      }
     }
-  }
 
-  async function geocode(q) {
-    // Cancel previous in-flight request
-    if (aborter) aborter.abort();
-    aborter = new AbortController();
+    async function geocode(q) {
+      // Cancel previous in-flight request
+      if (aborter) aborter.abort();
+      aborter = new AbortController();
 
-    // Nominatim (OpenStreetMap) — UK only
-    const url =
-      "https://nominatim.openstreetmap.org/search?" +
-      new URLSearchParams({
-        q,
-        format: "json",
-        addressdetails: "1",
-        limit: String(MAX_RESULTS),
-        countrycodes: "gb",
-      }).toString();
+      // Nominatim (OpenStreetMap) — UK only
+      const url =
+        "https://nominatim.openstreetmap.org/search?" +
+        new URLSearchParams({
+          q,
+          format: "json",
+          addressdetails: "1",
+          limit: String(MAX_RESULTS),
+          countrycodes: "gb",
+        }).toString();
 
-    const res = await fetch(url, {
-      signal: aborter.signal,
-      headers: {
-        // A polite UA hint (browser may ignore, but harmless)
-        "Accept": "application/json",
-      },
+      const res = await fetch(url, {
+        signal: aborter.signal,
+        headers: {
+          // A polite UA hint (browser may ignore, but harmless)
+          Accept: "application/json",
+        },
+      });
+
+      if (!res.ok) throw new Error("Geocoder HTTP " + res.status);
+      const data = await res.json();
+      if (!Array.isArray(data)) return [];
+
+      return data
+        .map((r) => {
+          const lat = Number(r.lat);
+          const lng = Number(r.lon);
+
+          // Build a nice Apple-ish two-line label
+          const a = r.address || {};
+          const road = a.road || a.pedestrian || a.footway || "";
+          const house = a.house_number ? String(a.house_number) : "";
+          const city = a.city || a.town || a.village || a.hamlet || "";
+          const county = a.county || "";
+          const postcode = a.postcode || "";
+
+          const main =
+            postcode &&
+            q.replace(/\s+/g, "").length <= 8 &&
+            postcode
+              .replace(/\s+/g, "")
+              .startsWith(q.replace(/\s+/g, "").toUpperCase())
+              ? postcode
+              : house || road
+                ? [house, road].filter(Boolean).join(" ").trim()
+                : r.display_name
+                  ? String(r.display_name).split(",")[0]
+                  : q;
+
+          const subParts = [];
+          if (city) subParts.push(city);
+          if (county && county !== city) subParts.push(county);
+          if (postcode && main !== postcode) subParts.push(postcode);
+
+          return {
+            lat,
+            lng,
+            main,
+            sub: subParts.join(", "),
+            raw: r,
+          };
+        })
+        .filter((x) => isFinite(x.lat) && isFinite(x.lng));
+    }
+
+    async function doQuery(q) {
+      const trimmed = String(q || "").trim();
+      lastQuery = trimmed;
+
+      if (trimmed.length < MIN_CHARS) {
+        closeBox();
+        return;
+      }
+
+      try {
+        const list = await geocode(trimmed);
+        // Only render if user hasn't typed something else since request started
+        if (lastQuery === trimmed) render(list);
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        console.warn("[FuelPilot] geocode error", e);
+        closeBox();
+      }
+    }
+
+    async function chooseIndex(idx) {
+      const r = results[idx];
+      if (!r) return;
+
+      // Update input to chosen label
+      input.value = r.main || input.value;
+
+      closeBox();
+
+      // Pan + refresh
+      if (map && isFinite(r.lat) && isFinite(r.lng)) {
+        map.setView([r.lat, r.lng], Math.max(map.getZoom() || 12, 12), {
+          animate: true,
+          duration: 0.35,
+        });
+        invalidateMapSoon();
+
+        // Mark dirty then immediately run viewport search
+        mapDirty = true;
+        updateSearchAreaButton();
+
+        setTimeout(async () => {
+          try {
+            await runSearchAreaViewport();
+          } catch (err) {
+            console.error(err);
+            setStatus(`Error: ${err.message || "Search failed"}`);
+          }
+        }, 380); // slightly longer than animation duration
+      }
+    }
+
+    // Debounced input
+    input.addEventListener("input", () => {
+      const q = input.value;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => doQuery(q), DEBOUNCE_MS);
     });
 
-    if (!res.ok) throw new Error("Geocoder HTTP " + res.status);
-    const data = await res.json();
-    if (!Array.isArray(data)) return [];
+    // Enter = pick first suggestion (if present), otherwise just close
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (results && results.length) chooseIndex(0);
+        else closeBox();
+      } else if (e.key === "Escape") {
+        closeBox();
+      }
+    });
 
-    return data.map((r) => {
-      const lat = Number(r.lat);
-      const lng = Number(r.lon);
+    // Click outside closes
+    document.addEventListener("click", (e) => {
+      const inside = e.target.closest && e.target.closest(".fp-search");
+      if (!inside) closeBox();
+    });
 
-      // Build a nice Apple-ish two-line label
-      const a = r.address || {};
-      const road = a.road || a.pedestrian || a.footway || "";
-      const house = a.house_number ? String(a.house_number) : "";
-      const city = a.city || a.town || a.village || a.hamlet || "";
-      const county = a.county || "";
-      const postcode = a.postcode || "";
-
-      const main =
-        (postcode && q.replace(/\s+/g, "").length <= 8 && postcode.replace(/\s+/g, "").startsWith(q.replace(/\s+/g, "").toUpperCase()))
-          ? postcode
-          : (house || road) ? [house, road].filter(Boolean).join(" ").trim()
-          : (r.display_name ? String(r.display_name).split(",")[0] : q);
-
-      const subParts = [];
-      if (city) subParts.push(city);
-      if (county && county !== city) subParts.push(county);
-      if (postcode && main !== postcode) subParts.push(postcode);
-
-      return {
-        lat,
-        lng,
-        main,
-        sub: subParts.join(", "),
-        raw: r,
-      };
-    }).filter((x) => isFinite(x.lat) && isFinite(x.lng));
+    // Focus behaviour: if user focuses and we already have results, show them
+    input.addEventListener("focus", () => {
+      if (results && results.length) openBox();
+    });
   }
-
-  async function doQuery(q) {
-    const trimmed = String(q || "").trim();
-    lastQuery = trimmed;
-
-    if (trimmed.length < MIN_CHARS) {
-      closeBox();
-      return;
-    }
-
-    try {
-      const list = await geocode(trimmed);
-      // Only render if user hasn't typed something else since request started
-      if (lastQuery === trimmed) render(list);
-    } catch (e) {
-      if (e && e.name === "AbortError") return;
-      console.warn("[FuelPilot] geocode error", e);
-      closeBox();
-    }
-  }
-
-  async function chooseIndex(idx) {
-    const r = results[idx];
-    if (!r) return;
-
-    // Update input to chosen label
-    input.value = r.main || input.value;
-
-    closeBox();
-
-    // Pan + refresh
-    if (map && isFinite(r.lat) && isFinite(r.lng)) {
-      map.setView([r.lat, r.lng], Math.max(map.getZoom() || 12, 12), { animate: true, duration: 0.35 });
-      invalidateMapSoon();
-
-      // Mark dirty then immediately run viewport search
-      mapDirty = true;
-      updateSearchAreaButton();
-
-      setTimeout(async () => {
-        try {
-          await runSearchAreaViewport();
-        } catch (err) {
-          console.error(err);
-          setStatus(`Error: ${err.message || "Search failed"}`);
-        }
-      }, 380); // slightly longer than animation duration
-    }
-  }
-
-  // Debounced input
-  input.addEventListener("input", () => {
-    const q = input.value;
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(() => doQuery(q), DEBOUNCE_MS);
-  });
-
-  // Enter = pick first suggestion (if present), otherwise just close
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      if (results && results.length) chooseIndex(0);
-      else closeBox();
-    } else if (e.key === "Escape") {
-      closeBox();
-    }
-  });
-
-  // Click outside closes
-  document.addEventListener("click", (e) => {
-    const inside = e.target.closest && e.target.closest(".fp-search");
-    if (!inside) closeBox();
-  });
-
-  // Focus behaviour: if user focuses and we already have results, show them
-  input.addEventListener("focus", () => {
-    if (results && results.length) openBox();
-  });
-}
 
   function readJSONLS(key, fallback) {
     try {
@@ -675,7 +738,9 @@ function initLocationSearch() {
 
   function refreshPricesOnlyLabel() {
     if (!els.pricesOnlyBtn) return;
-    els.pricesOnlyBtn.textContent = getPricesOnly() ? "Prices only" : "Include no-price";
+    els.pricesOnlyBtn.textContent = getPricesOnly()
+      ? "Prices only"
+      : "Include no-price";
   }
 
   // -----------------------------
@@ -701,10 +766,17 @@ function initLocationSearch() {
     for (const src of candidates) {
       try {
         await loadScript(src);
-        const maybeFns = ["initHeader", "injectHeader", "loadHeader", "initSiteChrome"];
+        const maybeFns = [
+          "initHeader",
+          "injectHeader",
+          "loadHeader",
+          "initSiteChrome",
+        ];
         for (const fnName of maybeFns) {
           if (typeof window[fnName] === "function") {
-            try { window[fnName](); } catch (e) {}
+            try {
+              window[fnName]();
+            } catch (e) {}
             break;
           }
         }
@@ -724,7 +796,7 @@ function initLocationSearch() {
   let activeMarkerId = null;
 
   let lastSearchCenter = null; // {lat,lng}
-  let lastOrigin = null;       // {lat,lng}
+  let lastOrigin = null; // {lat,lng}
   let stations = [];
   let lastCheckedAt = null; // manifestBuiltAt
   let mapDirty = false;
@@ -734,10 +806,13 @@ function initLocationSearch() {
     map = L.map("fpMap", { zoomControl: false });
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    const tiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-      attribution: "&copy; OpenStreetMap"
-    });
+    const tiles = L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        maxZoom: 18,
+        attribution: "&copy; OpenStreetMap",
+      },
+    );
 
     // If tiles fail during first paint (esp. Safari/iOS), force a redraw
     tiles.on("tileerror", () => {
@@ -750,20 +825,20 @@ function initLocationSearch() {
 
     invalidateMapSoon();
 
-cluster = L.markerClusterGroup({
-  // Break clusters sooner as you zoom in
-  maxClusterRadius: (zoom) => {
-    if (zoom >= 14) return 18; // almost no clustering
-    if (zoom >= 13) return 24;
-    if (zoom >= 12) return 34;
-    if (zoom >= 11) return 46;
-    return 60; // zoomed out
-  },
+    cluster = L.markerClusterGroup({
+      // Break clusters sooner as you zoom in
+      maxClusterRadius: (zoom) => {
+        if (zoom >= 14) return 18; // almost no clustering
+        if (zoom >= 13) return 24;
+        if (zoom >= 12) return 34;
+        if (zoom >= 11) return 46;
+        return 60; // zoomed out
+      },
 
-  showCoverageOnHover: false,
-  spiderfyOnMaxZoom: true,
-  zoomToBoundsOnClick: true
-});
+      showCoverageOnHover: false,
+      spiderfyOnMaxZoom: true,
+      zoomToBoundsOnClick: true,
+    });
 
     map.addLayer(cluster);
 
@@ -772,7 +847,13 @@ cluster = L.markerClusterGroup({
 
     if (appliedSharedState) {
       setStatus("Shared map view");
-    } else if (!window.__FP_SEO_MODE__ && savedMap && isFinite(savedMap.lat) && isFinite(savedMap.lng) && isFinite(savedMap.zoom)) {
+    } else if (
+      !window.__FP_SEO_MODE__ &&
+      savedMap &&
+      isFinite(savedMap.lat) &&
+      isFinite(savedMap.lng) &&
+      isFinite(savedMap.zoom)
+    ) {
       map.setView([savedMap.lat, savedMap.lng], savedMap.zoom);
       invalidateMapSoon();
       setStatus("Restored last map");
@@ -804,22 +885,22 @@ cluster = L.markerClusterGroup({
     });
   }
 
-    function updateSearchAreaButton() {
-      if (!els.searchAreaBtn) return;
+  function updateSearchAreaButton() {
+    if (!els.searchAreaBtn) return;
 
-      const hasStations = Array.isArray(stations) && stations.length > 0;
+    const hasStations = Array.isArray(stations) && stations.length > 0;
 
-      // Normal rule: show if map has moved away from last search ("dirty") or no stations yet.
-      let shouldShow = mapDirty || !hasStations;
+    // Normal rule: show if map has moved away from last search ("dirty") or no stations yet.
+    let shouldShow = mapDirty || !hasStations;
 
-      // SEO rule: after landing, keep it visible as a "try nearby" affordance
-      if (window.__FP_SEO_MODE__ && window.__FP_SEO_FORCE_SEARCH_AREA__) {
-        shouldShow = true;
-      }
-
-      if (shouldShow) els.searchAreaBtn.classList.add("is-visible");
-      else els.searchAreaBtn.classList.remove("is-visible");
+    // SEO rule: after landing, keep it visible as a "try nearby" affordance
+    if (window.__FP_SEO_MODE__ && window.__FP_SEO_FORCE_SEARCH_AREA__) {
+      shouldShow = true;
     }
+
+    if (shouldShow) els.searchAreaBtn.classList.add("is-visible");
+    else els.searchAreaBtn.classList.remove("is-visible");
+  }
 
   // -----------------------------
   // API calls
@@ -829,7 +910,9 @@ cluster = L.markerClusterGroup({
       const res = await fetch(url, { headers: { accept: "application/json" } });
       const text = await res.text();
       let data = null;
-      try { data = JSON.parse(text); } catch (e) {}
+      try {
+        data = JSON.parse(text);
+      } catch (e) {}
       return { res, text, data };
     } catch (err) {
       // One retry helps with transient first-load / edge hiccups
@@ -868,7 +951,7 @@ cluster = L.markerClusterGroup({
       radiusMiles: String(radiusMiles),
       limit: String(limit),
       sort: String(sortMode),
-      includeMissing
+      includeMissing,
     });
 
     setStatus("Updating prices…");
@@ -879,8 +962,14 @@ cluster = L.markerClusterGroup({
       const msg = data && data.message ? data.message : `HTTP ${res.status}`;
       throw new Error(`${msg} via ${shortUrl(url)}`);
     }
-    if (!data) throw new Error(`Non-JSON response via ${shortUrl(url)} (starts: ${text.slice(0, 60)})`);
-    if (data.ok === false) throw new Error(`${data.message || "API returned ok:false"} via ${shortUrl(url)}`);
+    if (!data)
+      throw new Error(
+        `Non-JSON response via ${shortUrl(url)} (starts: ${text.slice(0, 60)})`,
+      );
+    if (data.ok === false)
+      throw new Error(
+        `${data.message || "API returned ok:false"} via ${shortUrl(url)}`,
+      );
 
     lastCheckedAt = data.manifestBuiltAt || null;
 
@@ -899,7 +988,7 @@ cluster = L.markerClusterGroup({
       fuel: String(fuel),
       limit: String(limit),
       sort: String(sortMode),
-      includeMissing
+      includeMissing,
     });
 
     setStatus("Updating this area…");
@@ -910,8 +999,14 @@ cluster = L.markerClusterGroup({
       const msg = data && data.message ? data.message : `HTTP ${res.status}`;
       throw new Error(`${msg} via ${shortUrl(url)}`);
     }
-    if (!data) throw new Error(`Non-JSON response via ${shortUrl(url)} (starts: ${text.slice(0, 60)})`);
-    if (data.ok === false) throw new Error(`${data.message || "API returned ok:false"} via ${shortUrl(url)}`);
+    if (!data)
+      throw new Error(
+        `Non-JSON response via ${shortUrl(url)} (starts: ${text.slice(0, 60)})`,
+      );
+    if (data.ok === false)
+      throw new Error(
+        `${data.message || "API returned ok:false"} via ${shortUrl(url)}`,
+      );
 
     lastCheckedAt = data.manifestBuiltAt || null;
 
@@ -952,27 +1047,30 @@ cluster = L.markerClusterGroup({
     return n.toFixed(1) + "p";
   }
 
-function computeQuintiles(stationsWithPrices) {
-  const prices = stationsWithPrices
-    .map((s) => s._priceNum)
-    .filter((v) => typeof v === "number" && isFinite(v))
-    .sort((a, b) => a - b);
+  function computeQuintiles(stationsWithPrices) {
+    const prices = stationsWithPrices
+      .map((s) => s._priceNum)
+      .filter((v) => typeof v === "number" && isFinite(v))
+      .sort((a, b) => a - b);
 
-  // If we have 0–1 prices, quintiles are meaningless
-  if (prices.length < 2) return { cuts: null };
+    // If we have 0–1 prices, quintiles are meaningless
+    if (prices.length < 2) return { cuts: null };
 
-  // Works even for 2–4 prices (indexes just collapse naturally)
-  const q = (pct) => {
-    const idx = Math.floor((prices.length - 1) * pct);
-    return prices[idx];
-  };
+    // Works even for 2–4 prices (indexes just collapse naturally)
+    const q = (pct) => {
+      const idx = Math.floor((prices.length - 1) * pct);
+      return prices[idx];
+    };
 
-  return { cuts: [q(0.2), q(0.4), q(0.6), q(0.8)] };
-}
+    return { cuts: [q(0.2), q(0.4), q(0.6), q(0.8)] };
+  }
 
   function quintileClass(priceNum, cuts) {
     if (!cuts || !Array.isArray(cuts)) return "fp-q2";
-    const c1 = cuts[0], c2 = cuts[1], c3 = cuts[2], c4 = cuts[3];
+    const c1 = cuts[0],
+      c2 = cuts[1],
+      c3 = cuts[2],
+      c4 = cuts[3];
     if (priceNum <= c1) return "fp-q0";
     if (priceNum <= c2) return "fp-q1";
     if (priceNum <= c3) return "fp-q2";
@@ -985,64 +1083,76 @@ function computeQuintiles(stationsWithPrices) {
     activeMarkerId = null;
   }
 
-function buildMarker(st, cuts) {
-  const lat = Number(st.lat != null ? st.lat : st.latitude);
-  const lng = Number(st.lng != null ? st.lng : (st.lon != null ? st.lon : st.longitude));
-  if (!isFinite(lat) || !isFinite(lng)) return null;
+  function buildMarker(st, cuts) {
+    const lat = Number(st.lat != null ? st.lat : st.latitude);
+    const lng = Number(
+      st.lng != null ? st.lng : st.lon != null ? st.lon : st.longitude,
+    );
+    if (!isFinite(lat) || !isFinite(lng)) return null;
 
-  const priceNum = st._priceNum;
+    const priceNum = st._priceNum;
 
-  // Brand badge (empty string if disabled / unknown / independent)
-  const badgeHTML = fpBrandBadgeHTML(st);
+    // Brand badge (empty string if disabled / unknown / independent)
+    const badgeHTML = fpBrandBadgeHTML(st);
 
-  // ✅ Missing / no-price path
-  if (priceNum == null || !isFinite(priceNum)) {
-    const html = `
+    // ✅ Missing / no-price path
+    if (priceNum == null || !isFinite(priceNum)) {
+      const html = `
       <div class="fp-flag fp-flag--missing" data-mid="${escapeHtml(st._id)}">
         ${badgeHTML}
         —
       </div>
     `;
-    const icon = L.divIcon({ html, className: "", iconSize: [1, 1] });
-    const m = L.marker([lat, lng], { icon });
-    m.on("click", () => selectStation(st._id, { openDrawer: true, pan: true }));
-    return m;
-  }
+      const icon = L.divIcon({ html, className: "", iconSize: [1, 1] });
+      const m = L.marker([lat, lng], { icon });
+      m.on("click", () =>
+        selectStation(st._id, { openDrawer: true, pan: true }),
+      );
+      return m;
+    }
 
-  // ✅ Existing priced marker path
-  const qClass = quintileClass(priceNum, cuts);
-  const priceText = formatPrice(priceNum);
+    // ✅ Existing priced marker path
+    const qClass = quintileClass(priceNum, cuts);
+    const priceText = formatPrice(priceNum);
 
-  const html = `
+    const html = `
     <div class="fp-flag ${qClass}" data-mid="${escapeHtml(st._id)}">
       ${badgeHTML}
       ${escapeHtml(priceText)}
     </div>
   `;
 
-  const icon = L.divIcon({ html, className: "", iconSize: [1, 1] });
-  const m = L.marker([lat, lng], { icon });
-  m.on("click", () => selectStation(st._id, { openDrawer: true, pan: true }));
-  return m;
-}
+    const icon = L.divIcon({ html, className: "", iconSize: [1, 1] });
+    const m = L.marker([lat, lng], { icon });
+    m.on("click", () => selectStation(st._id, { openDrawer: true, pan: true }));
+    return m;
+  }
 
   // -----------------------------
   // Selection + drawer/card rendering
   // -----------------------------
-  function openDrawer() { if (els.drawer) els.drawer.classList.add("is-open"); }
-  function closeDrawer() { if (els.drawer) els.drawer.classList.remove("is-open"); }
+  function openDrawer() {
+    if (els.drawer) els.drawer.classList.add("is-open");
+  }
+  function closeDrawer() {
+    if (els.drawer) els.drawer.classList.remove("is-open");
+  }
 
   function setActiveFlag(mid) {
     const prev = document.querySelector(".fp-flag.is-active");
     if (prev) prev.classList.remove("is-active");
     if (!mid) return;
-    const next = document.querySelector(`.fp-flag[data-mid="${cssEscape(mid)}"]`);
+    const next = document.querySelector(
+      `.fp-flag[data-mid="${cssEscape(mid)}"]`,
+    );
     if (next) next.classList.add("is-active");
   }
 
   function stationDirectionsUrl(st) {
     const lat = Number(st.lat != null ? st.lat : st.latitude);
-    const lng = Number(st.lng != null ? st.lng : (st.lon != null ? st.lon : st.longitude));
+    const lng = Number(
+      st.lng != null ? st.lng : st.lon != null ? st.lon : st.longitude,
+    );
     const q = `${lat},${lng}`;
     return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}&travelmode=driving`;
   }
@@ -1070,19 +1180,27 @@ function buildMarker(st, cuts) {
     if (st.town) parts.push(st.town);
     if (st.postcode) parts.push(st.postcode);
 
-    const out = parts.map((x) => String(x).trim()).filter(Boolean).join(", ");
+    const out = parts
+      .map((x) => String(x).trim())
+      .filter(Boolean)
+      .join(", ");
     return out || "Address unavailable";
   }
 
   function stationBadges(st) {
     const arr = st.badges || st.amenities || st.services || st.facilities || [];
     if (!Array.isArray(arr)) return [];
-    return arr.map((x) => String(x).trim()).filter(Boolean).slice(0, 6);
+    return arr
+      .map((x) => String(x).trim())
+      .filter(Boolean)
+      .slice(0, 6);
   }
 
   function distanceMilesFromOrigin(st) {
     const lat = Number(st.lat != null ? st.lat : st.latitude);
-    const lng = Number(st.lng != null ? st.lng : (st.lon != null ? st.lon : st.longitude));
+    const lng = Number(
+      st.lng != null ? st.lng : st.lon != null ? st.lon : st.longitude,
+    );
     if (!isFinite(lat) || !isFinite(lng)) return null;
 
     const origin = lastOrigin || lastSearchCenter;
@@ -1101,9 +1219,11 @@ function buildMarker(st, cuts) {
   function renderSelectedCard(st) {
     const hasPrice = st._priceNum != null && isFinite(st._priceNum);
 
-        // ✅ Give selected card the same accent class as list rows
+    // ✅ Give selected card the same accent class as list rows
     const cuts = window.__FP_CUTS || null;
-    const selClass = hasPrice ? quintileClass(st._priceNum, cuts) : "fp-missing";
+    const selClass = hasPrice
+      ? quintileClass(st._priceNum, cuts)
+      : "fp-missing";
     const priceText = hasPrice ? formatPrice(st._priceNum) : "No Price";
     const name = stationName(st);
     const addr = stationAddress(st);
@@ -1112,10 +1232,17 @@ function buildMarker(st, cuts) {
     const checkedText = fpFormatTimeAgoFromIso(lastCheckedAt);
 
     const rawLastChanged = st.changedAt || null;
-    const rawLastUpdated = st.updatedAt || st.lastUpdated || st.last_update || st.timestamp || null;
+    const rawLastUpdated =
+      st.updatedAt || st.lastUpdated || st.last_update || st.timestamp || null;
 
-    const lastChanged = fpDisplayIsoCappedAtCheck(rawLastChanged, lastCheckedAt);
-    const lastUpdated = fpDisplayIsoCappedAtCheck(rawLastUpdated, lastCheckedAt);
+    const lastChanged = fpDisplayIsoCappedAtCheck(
+      rawLastChanged,
+      lastCheckedAt,
+    );
+    const lastUpdated = fpDisplayIsoCappedAtCheck(
+      rawLastUpdated,
+      lastCheckedAt,
+    );
 
     els.selectedCard.hidden = false;
     els.selectedCard.innerHTML = `
@@ -1129,11 +1256,15 @@ function buildMarker(st, cuts) {
 
         ${!hasPrice ? `<div class="fp-card__trust">No recent price reported for this station.</div>` : ""}
 
-        ${badges.length ? `
+        ${
+          badges.length
+            ? `
           <div class="fp-badges">
             ${badges.map((b) => `<span class="fp-badge">${escapeHtml(b)}</span>`).join("")}
           </div>
-        ` : ""}
+        `
+            : ""
+        }
 
       <div class="fp-card__cta">
         <a class="fp-link-btn" href="${dir}" target="_blank" rel="noopener">
@@ -1141,6 +1272,7 @@ function buildMarker(st, cuts) {
         </a>
         <a class="fp-link-btn" href="${fpStationPageHref(st)}">
           Page
+        </a>
         </a>
         <span class="fp-mini">${escapeHtml(distanceLabel(st))}</span>
       </div>
@@ -1161,7 +1293,7 @@ function buildMarker(st, cuts) {
     fpStationSlugByIdPromise = (async () => {
       try {
         const res = await fetch(FP_STATION_SLUGS_URL, {
-          headers: { accept: "application/json" }
+          headers: { accept: "application/json" },
         });
         if (!res.ok) throw new Error(`Slug map fetch failed: ${res.status}`);
 
@@ -1185,14 +1317,19 @@ function buildMarker(st, cuts) {
 
   function fpStationPageHref(st) {
     const rawId = String(st?._id || st?.id || "").trim();
-    const map = window.__FP_STATION_SLUG_BY_ID__ || null;
+    if (!rawId) return "/station/";
 
-    if (map && rawId) {
-      const slug = map[rawId.toLowerCase()];
-      if (slug) return `/station/${encodeURIComponent(slug)}`;
+    const map = window.__FP_STATION_SLUG_BY_ID__ || null;
+    const slug = map && map[rawId.toLowerCase()];
+
+    // On first fresh load, slug map may not be ready yet.
+    // In that case, block station-page navigation until it is ready,
+    // rather than falling back to the raw node ID URL.
+    if (slug) {
+      return `/station/${encodeURIComponent(slug)}`;
     }
 
-    return `/station/${encodeURIComponent(rawId)}`;
+    return "#";
   }
 
   window.__FP_STATION_SLUG_BY_ID__ = {};
@@ -1200,39 +1337,50 @@ function buildMarker(st, cuts) {
     window.__FP_STATION_SLUG_BY_ID__ = map || {};
   });
 
-function renderList() {
-  const sortMode = readLS(LS.sort, "price");
-  const fuel = readLS(LS.fuel, "E10");
+  function renderList() {
+    const sortMode = readLS(LS.sort, "price");
+    const fuel = readLS(LS.fuel, "E10");
 
-  // Quintile cut points from the latest search (set in applyResults)
-  const cuts = window.__FP_CUTS || null;
+    // Quintile cut points from the latest search (set in applyResults)
+    const cuts = window.__FP_CUTS || null;
 
-  const sorted = stations.slice();
-  if (sortMode === "distance") {
-    sorted.sort((a, b) => (distanceMilesFromOrigin(a) || 1e9) - (distanceMilesFromOrigin(b) || 1e9));
-  } else {
-    sorted.sort((a, b) => ((a._priceNum == null ? 1e9 : a._priceNum) - (b._priceNum == null ? 1e9 : b._priceNum)));
-  }
+    const sorted = stations.slice();
+    if (sortMode === "distance") {
+      sorted.sort(
+        (a, b) =>
+          (distanceMilesFromOrigin(a) || 1e9) -
+          (distanceMilesFromOrigin(b) || 1e9),
+      );
+    } else {
+      sorted.sort(
+        (a, b) =>
+          (a._priceNum == null ? 1e9 : a._priceNum) -
+          (b._priceNum == null ? 1e9 : b._priceNum),
+      );
+    }
 
-  els.list.innerHTML = sorted.map((st) => {
-    const name = stationName(st);
-    const addr = stationAddress(st);
-    const hasPrice = st._priceNum != null && isFinite(st._priceNum);
+    els.list.innerHTML = sorted
+      .map((st) => {
+        const name = stationName(st);
+        const addr = stationAddress(st);
+        const hasPrice = st._priceNum != null && isFinite(st._priceNum);
 
-    const p = hasPrice ? formatPrice(st._priceNum) : "No price";
-    const fuelLabel = "";
+        const p = hasPrice ? formatPrice(st._priceNum) : "No price";
+        const fuelLabel = "";
 
-    const dir = stationDirectionsUrl(st);
-    const dist = distanceLabel(st);
-    const pageHref = fpStationPageHref(st);
+        const dir = stationDirectionsUrl(st);
+        const dist = distanceLabel(st);
+        const pageHref = fpStationPageHref(st);
 
-    // ✅ Visual link class for list accent bar:
-    // priced = fp-q0..fp-q4, missing = fp-missing
-    const rowClass = hasPrice ? quintileClass(st._priceNum, cuts) : "fp-missing";
+        // ✅ Visual link class for list accent bar:
+        // priced = fp-q0..fp-q4, missing = fp-missing
+        const rowClass = hasPrice
+          ? quintileClass(st._priceNum, cuts)
+          : "fp-missing";
 
-const badgeHTML = fpBrandBadgeHTML(st);
+        const badgeHTML = fpBrandBadgeHTML(st);
 
-return `
+        return `
   <div class="fp-row ${rowClass}" role="listitem" data-id="${escapeHtml(st._id)}">
     <div class="fp-row__left">
       <div class="fp-row__price">
@@ -1249,34 +1397,86 @@ return `
       ↗
     </a>
 
-    <a class="fp-link-btn" href="${pageHref}" aria-label="Station page">
+    <a
+      class="fp-link-btn"
+      href="${pageHref}"
+      aria-label="Station page"
+      data-station-id="${escapeHtml(st._id || st.id || "")}"
+    >
       Page
     </a>
   </div>
   </div>
 `;
-  }).join("");
+      })
+      .join("");
 
-  const rows = els.list.querySelectorAll(".fp-row");
-  for (let i = 0; i < rows.length; i++) {
-    rows[i].addEventListener("click", (e) => {
-      const link = e.target.closest("a");
-      if (link) return;
-      const id = rows[i].getAttribute("data-id");
-      if (id) selectStation(id, { openDrawer: true, pan: true });
+    const rows = els.list.querySelectorAll(".fp-row");
+    for (let i = 0; i < rows.length; i++) {
+      rows[i].addEventListener("click", (e) => {
+        const link = e.target.closest("a");
+        if (link) return;
+        const id = rows[i].getAttribute("data-id");
+        if (id) selectStation(id, { openDrawer: true, pan: true });
+      });
+    }
+
+    const pageLinks = els.list.querySelectorAll(
+      'a.fp-link-btn[aria-label="Station page"]',
+    );
+
+    pageLinks.forEach((link) => {
+      link.addEventListener("click", async (ev) => {
+        const href = link.getAttribute("href") || "";
+        if (href && href !== "#") return;
+
+        ev.preventDefault();
+
+        const stationId = String(
+          link.getAttribute("data-station-id") || "",
+        ).trim();
+        if (!stationId) return;
+
+        try {
+          const map = await fpLoadStationSlugById();
+          window.__FP_STATION_SLUG_BY_ID__ = map || {};
+
+          const slug = map && map[stationId.toLowerCase()];
+          if (!slug) return;
+
+          location.href = `/station/${encodeURIComponent(slug)}`;
+        } catch (e) {
+          console.warn("[FuelPilot] station page navigation failed", e);
+        }
+      });
     });
   }
-}
 
-    function attachSeoStationDetail(detail, opts) {
-      if (!detail) return false;
+  function attachSeoStationDetail(detail, opts) {
+    if (!detail) return false;
 
-      const lat = Number(detail.lat);
-      const lng = Number(detail.lng);
+    const lat = Number(detail.lat);
+    const lng = Number(detail.lng);
+    const exactId = String(detail.nodeId || detail.id || "station-detail");
 
-      const exact = {
-        _id: String(detail.id || detail.nodeId || "station-detail"),
-        id: String(detail.id || detail.nodeId || "station-detail"),
+    // Prefer the live, normalized station from the current results
+    // so the selected card stays in sync with the drawer rows.
+    const liveMatch = Array.isArray(stations)
+      ? stations.find((s) => String(s._id || s.id || "") === exactId)
+      : null;
+
+    let exact;
+
+    if (liveMatch) {
+      exact = {
+        ...liveMatch,
+        _id: String(liveMatch._id || liveMatch.id || exactId),
+        id: String(liveMatch.id || liveMatch._id || exactId)
+      };
+    } else {
+      exact = {
+        _id: exactId,
+        id: exactId,
         name: detail.name || detail.brand || "Fuel station",
         brand: detail.brand || "",
         addressShort: detail.addressShort || "",
@@ -1291,27 +1491,29 @@ return `
       const prices = Array.isArray(detail.fuel_prices) ? detail.fuel_prices : [];
       const fuel = readLS(LS.fuel, "E10");
       const matched = prices.find(
-        (p) => String(p?.fuel_type || "").toUpperCase() === String(fuel).toUpperCase()
+        (p) =>
+          String(p?.fuel_type || "").toUpperCase() === String(fuel).toUpperCase()
       );
 
       if (matched && matched.price != null && isFinite(Number(matched.price))) {
         exact.price = Number(matched.price);
         exact._priceNum = Number(matched.price);
       }
-
-      activeMarkerId = exact._id;
-      setActiveFlag(null);
-      renderSelectedCard(exact);
-
-      const shouldOpen = !opts || opts.openDrawer !== false;
-      if (shouldOpen) openDrawer();
-
-      if ((opts && opts.pan) !== false && isFinite(lat) && isFinite(lng) && map) {
-        map.setView([lat, lng], Math.max(map.getZoom() || 12, 15), { animate: false });
-      }
-
-      return true;
     }
+
+    activeMarkerId = exact._id;
+    setActiveFlag(null);
+    renderSelectedCard(exact);
+
+    const shouldOpen = !opts || opts.openDrawer !== false;
+    if (shouldOpen) openDrawer();
+
+    if ((opts && opts.pan) !== false && isFinite(lat) && isFinite(lng) && map) {
+      map.setView([lat, lng], Math.max(map.getZoom() || 12, 15), { animate: false });
+    }
+
+    return true;
+  }
 
   function selectStation(id, opts) {
     const st = stations.find((s) => s._id === id);
@@ -1326,7 +1528,9 @@ return `
 
     if (opts && opts.pan) {
       const lat = Number(st.lat != null ? st.lat : st.latitude);
-      const lng = Number(st.lng != null ? st.lng : (st.lon != null ? st.lon : st.longitude));
+      const lng = Number(
+        st.lng != null ? st.lng : st.lon != null ? st.lon : st.longitude,
+      );
       if (isFinite(lat) && isFinite(lng)) {
         map.panTo([lat, lng], { animate: true, duration: 0.35 });
       }
@@ -1337,98 +1541,119 @@ return `
   // Search + render pipeline
   // -----------------------------
   function normalizeStations(data) {
-    const list = Array.isArray(data.stations) ? data.stations : (Array.isArray(data.results) ? data.results : []);
+    const list = Array.isArray(data.stations)
+      ? data.stations
+      : Array.isArray(data.results)
+        ? data.results
+        : [];
     return list.map((st, idx) => {
       const priceNum = getNumericPrice(st);
       return {
         ...st,
-        _id: String(st.id != null ? st.id : (st.stationId != null ? st.stationId : (st.siteId != null ? st.siteId : idx))),
-        _priceNum: priceNum
+        _id: String(
+          st.id != null
+            ? st.id
+            : st.stationId != null
+              ? st.stationId
+              : st.siteId != null
+                ? st.siteId
+                : idx,
+        ),
+        _priceNum: priceNum,
       };
     });
   }
 
   async function applyResults(data) {
-  stations = normalizeStations(data);
+    stations = normalizeStations(data);
 
-  const withPrices = stations.filter((s) => s._priceNum != null && isFinite(s._priceNum));
-  const cutsGlobal = computeQuintiles(withPrices).cuts;
+    const withPrices = stations.filter(
+      (s) => s._priceNum != null && isFinite(s._priceNum),
+    );
+    const cutsGlobal = computeQuintiles(withPrices).cuts;
 
-  // Viewport cuts (only after map exists)
-  let cuts = cutsGlobal;
-  if (map && withPrices.length) {
-    const inViewWithPrices = withPrices.filter(isInView);
-    const cutsView = computeQuintiles(inViewWithPrices).cuts;
-    if (inViewWithPrices.length >= 10 && cutsView) cuts = cutsView;
-  }
-
-  window.__FP_CUTS = cuts;
-
-  clearMarkers();
-
-  let markerCount = 0;
-  for (let i = 0; i < stations.length; i++) {
-    const m = buildMarker(stations[i], cuts);
-    if (m) {
-      cluster.addLayer(m);
-      markerCount++;
+    // Viewport cuts (only after map exists)
+    let cuts = cutsGlobal;
+    if (map && withPrices.length) {
+      const inViewWithPrices = withPrices.filter(isInView);
+      const cutsView = computeQuintiles(inViewWithPrices).cuts;
+      if (inViewWithPrices.length >= 10 && cutsView) cuts = cutsView;
     }
-  }
 
-  const c = map.getCenter();
-  lastSearchCenter = { lat: c.lat, lng: c.lng };
+    window.__FP_CUTS = cuts;
 
-  mapDirty = false;
-  updateSearchAreaButton();
+    clearMarkers();
 
-  const pricedCount = withPrices.length;
-  const missingCount = stations.length - pricedCount;
-  if (els.countLine) {
-    els.countLine.textContent = `${stations.length} shown • ${pricedCount} priced • ${missingCount} no-price`;
-  }
+    let markerCount = 0;
+    for (let i = 0; i < stations.length; i++) {
+      const m = buildMarker(stations[i], cuts);
+      if (m) {
+        cluster.addLayer(m);
+        markerCount++;
+      }
+    }
+
+    const c = map.getCenter();
+    lastSearchCenter = { lat: c.lat, lng: c.lng };
+
+    mapDirty = false;
+    updateSearchAreaButton();
+
+    const pricedCount = withPrices.length;
+    const missingCount = stations.length - pricedCount;
+    if (els.countLine) {
+      els.countLine.textContent = `${stations.length} shown • ${pricedCount} priced • ${missingCount} no-price`;
+    }
 
     // Publish current location-page results for the SEO block
-  try {
-    window.__FP_SEO_RESULTS__ = {
-      stations: Array.isArray(stations) ? stations.slice() : [],
-      pricedCount,
-      missingCount,
-      fuel: String((els.fuelSelect && els.fuelSelect.value) || "").toUpperCase()
-    };
+    try {
+      window.__FP_SEO_RESULTS__ = {
+        stations: Array.isArray(stations) ? stations.slice() : [],
+        pricedCount,
+        missingCount,
+        fuel: String(
+          (els.fuelSelect && els.fuelSelect.value) || "",
+        ).toUpperCase(),
+      };
 
-    window.dispatchEvent(new CustomEvent("fp:seo-results-ready", {
-      detail: window.__FP_SEO_RESULTS__
-    }));
-  } catch (e) {
-    console.warn("[FP SEO] publish results failed", e);
+      window.dispatchEvent(
+        new CustomEvent("fp:seo-results-ready", {
+          detail: window.__FP_SEO_RESULTS__,
+        }),
+      );
+    } catch (e) {
+      console.warn("[FP SEO] publish results failed", e);
+    }
+
+    setLiveMeta(lastCheckedAt);
+
+    renderList();
+
+    // Auto-pick first station (prefer priced)
+    // Station pages: keep the exact station as the authoritative selected card.
+    if (window.__FP_STATION_DETAIL__) {
+      attachSeoStationDetail(window.__FP_STATION_DETAIL__, {
+        openDrawer: false,
+        pan: false,
+      });
+    } else if (stations.length) {
+      const pick = stations.find((s) => s._priceNum != null) || stations[0];
+      if (pick && pick._id)
+        selectStation(pick._id, { openDrawer: false, pan: false });
+    } else {
+      if (els.selectedCard) els.selectedCard.hidden = true;
+      mapDirty = true;
+      updateSearchAreaButton();
+    }
+
+    // ✅ Final pass: make sure colours match the visible view right now
+    recolorForViewport();
+
+    // ✅ Final layout settle after rendering list/markers (prevents occasional blank tiles)
+    setTimeout(() => {
+      if (map) map.invalidateSize({ pan: false });
+    }, 150);
   }
-
-  setLiveMeta(lastCheckedAt);
-
-  renderList();
-
-
-  // Auto-pick first station (prefer priced)
-  // Station pages: keep the exact station as the authoritative selected card.
-  if (window.__FP_STATION_DETAIL__) {
-    attachSeoStationDetail(window.__FP_STATION_DETAIL__, { openDrawer: false, pan: false });
-  } else if (stations.length) {
-    const pick = stations.find(s => s._priceNum != null) || stations[0];
-    if (pick && pick._id) selectStation(pick._id, { openDrawer: false, pan: false });
-  } else {
-    if (els.selectedCard) els.selectedCard.hidden = true;
-    mapDirty = true;
-    updateSearchAreaButton();
-  }
-
-  // ✅ Final pass: make sure colours match the visible view right now
-  recolorForViewport();
-
-  // ✅ Final layout settle after rendering list/markers (prevents occasional blank tiles)
-  setTimeout(() => {
-    if (map) map.invalidateSize({ pan: false });
-  }, 150);
-}
 
   async function runSearchPresetOrRefresh(center, presetConfig) {
     const fuel = els.fuelSelect.value || readLS(LS.fuel, "E10");
@@ -1436,10 +1661,17 @@ return `
 
     setStatus("Searching…");
 
-    const radiusMiles = presetConfig && presetConfig.radiusMiles ? presetConfig.radiusMiles : 16;
+    const radiusMiles =
+      presetConfig && presetConfig.radiusMiles ? presetConfig.radiusMiles : 16;
     const limit = presetConfig && presetConfig.limit ? presetConfig.limit : 200;
 
-    const data = await fetchNear({ lat: center.lat, lng: center.lng, fuel, radiusMiles, limit });
+    const data = await fetchNear({
+      lat: center.lat,
+      lng: center.lng,
+      fuel,
+      radiusMiles,
+      limit,
+    });
     await applyResults(data);
   }
 
@@ -1459,7 +1691,9 @@ return `
   // -----------------------------
   function refreshSortLabel() {
     const sortMode = readLS(LS.sort, "price");
-    if (els.sortLabel) els.sortLabel.textContent = sortMode === "distance" ? "Distance" : "Price";
+    if (els.sortLabel)
+      els.sortLabel.textContent =
+        sortMode === "distance" ? "Distance" : "Price";
   }
 
   function toggleSort() {
@@ -1477,7 +1711,12 @@ return `
   function applyPreset(key) {
     if (key === "restore") {
       const savedMap = readJSONLS(LS.map, null);
-      if (savedMap && isFinite(savedMap.lat) && isFinite(savedMap.lng) && isFinite(savedMap.zoom)) {
+      if (
+        savedMap &&
+        isFinite(savedMap.lat) &&
+        isFinite(savedMap.lng) &&
+        isFinite(savedMap.zoom)
+      ) {
         map.setView([savedMap.lat, savedMap.lng], savedMap.zoom);
         invalidateMapSoon();
         setStatus("Restored last view");
@@ -1533,15 +1772,19 @@ return `
         }
       },
       () => setStatus("Location permission denied"),
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
     );
-      }
+  }
 
   // -----------------------------
   // Modal
   // -----------------------------
-  function openModal() { if (els.modal) els.modal.hidden = false; }
-  function closeModal() { if (els.modal) els.modal.hidden = true; }
+  function openModal() {
+    if (els.modal) els.modal.hidden = false;
+  }
+  function closeModal() {
+    if (els.modal) els.modal.hidden = true;
+  }
 
   // -----------------------------
   // Drawer interactions
@@ -1553,8 +1796,9 @@ return `
         invalidateMapSoon();
       });
     }
-    if (els.closeDrawerBtn) els.closeDrawerBtn.addEventListener("click", () => closeDrawer());
-     invalidateMapSoon();
+    if (els.closeDrawerBtn)
+      els.closeDrawerBtn.addEventListener("click", () => closeDrawer());
+    invalidateMapSoon();
   }
 
   // -----------------------------
@@ -1571,12 +1815,14 @@ return `
     refreshSortLabel();
 
     // default ON if not present
-    if (localStorage.getItem(LS.pricesOnly) == null) writeLS(LS.pricesOnly, "0");
+    if (localStorage.getItem(LS.pricesOnly) == null)
+      writeLS(LS.pricesOnly, "0");
     refreshPricesOnlyLabel();
 
     const savedRegion = readLS(LS.region, "central");
     if (els.regionSelect) {
-      els.regionSelect.value = (savedRegion && PRESETS[savedRegion]) ? savedRegion : "central";
+      els.regionSelect.value =
+        savedRegion && PRESETS[savedRegion] ? savedRegion : "central";
     }
 
     els.legendBtn?.addEventListener("click", () => {
@@ -1595,7 +1841,10 @@ return `
     initDrawerInteractions();
     initLocationSearch();
 
-    if (els.regionSelect) els.regionSelect.addEventListener("change", (e) => applyPreset(e.target.value));
+    if (els.regionSelect)
+      els.regionSelect.addEventListener("change", (e) =>
+        applyPreset(e.target.value),
+      );
 
     if (els.fuelSelect) {
       els.fuelSelect.addEventListener("change", () => {
@@ -1608,7 +1857,7 @@ return `
 
     if (els.myLocBtn) els.myLocBtn.addEventListener("click", useMyLocation);
 
-      els.shareBtn?.addEventListener("click", handleShareMap);
+    els.shareBtn?.addEventListener("click", handleShareMap);
 
     if (els.refreshBtn) {
       els.refreshBtn.addEventListener("click", async () => {
@@ -1628,7 +1877,6 @@ return `
 
     if (els.searchAreaBtn) {
       els.searchAreaBtn.addEventListener("click", async () => {
-
         if (window.__FP_SEO_MODE__) {
           window.__FP_SEO_FORCE_SEARCH_AREA__ = false;
         }
@@ -1662,7 +1910,8 @@ return `
     }
 
     if (els.helpBtn) els.helpBtn.addEventListener("click", openModal);
-    if (els.modalBackdrop) els.modalBackdrop.addEventListener("click", closeModal);
+    if (els.modalBackdrop)
+      els.modalBackdrop.addEventListener("click", closeModal);
     if (els.modalClose) els.modalClose.addEventListener("click", closeModal);
 
     // Initial state
@@ -1711,7 +1960,8 @@ return `
     const sinDLat = Math.sin(dLat / 2);
     const sinDLng = Math.sin(dLng / 2);
 
-    const h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLng * sinDLng;
+    const h =
+      sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLng * sinDLng;
     return R * (2 * Math.asin(Math.min(1, Math.sqrt(h))));
   }
 
@@ -1737,12 +1987,14 @@ return `
       const lng = Number(detail.lng);
       if (!isFinite(lat) || !isFinite(lng)) return;
 
-           // Show the exact station card immediately
+      // Show the exact station card immediately
       attachSeoStationDetail(detail, { openDrawer: true, pan: true });
 
       // Centre on the exact station first
       if (map && isFinite(Number(detail.lat)) && isFinite(Number(detail.lng))) {
-        map.setView([Number(detail.lat), Number(detail.lng)], 15, { animate: false });
+        map.setView([Number(detail.lat), Number(detail.lng)], 15, {
+          animate: false,
+        });
       }
 
       // Let the layout settle, then force Leaflet to recalc size
@@ -1761,23 +2013,22 @@ return `
 
   document.addEventListener("DOMContentLoaded", init);
 
-// --- SEO: robots meta control (based on priced count line) ---
-function setRobots(content) {
-  try {
-    let tag = document.querySelector('meta[name="robots"]');
-    if (!tag) {
-      tag = document.createElement("meta");
-      tag.setAttribute("name", "robots");
-      document.head.appendChild(tag);
+  // --- SEO: robots meta control (based on priced count line) ---
+  function setRobots(content) {
+    try {
+      let tag = document.querySelector('meta[name="robots"]');
+      if (!tag) {
+        tag = document.createElement("meta");
+        tag.setAttribute("name", "robots");
+        document.head.appendChild(tag);
+      }
+      tag.setAttribute("content", content);
+    } catch (e) {
+      console.warn("[FP SEO] setRobots failed", e);
     }
-    tag.setAttribute("content", content);
-  } catch (e) {
-    console.warn("[FP SEO] setRobots failed", e);
   }
-}
 
   // Homepage must always stay indexable.
   // Do not let runtime UI state decide homepage indexability.
   setRobots("index,follow,max-image-preview:large");
-
 })();
