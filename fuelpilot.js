@@ -72,8 +72,8 @@
       lat: 54.5,
       lng: -3.0,
       zoom: 6,
-      radiusMiles: 120,
-      limit: 250,
+      radiusMiles: 300,
+      limit: 1000,
     }, // neutral UK view
   };
 
@@ -858,7 +858,7 @@
       invalidateMapSoon();
       setStatus("Restored last map");
     } else {
-      const def = window.__FP_SEO_MODE__ ? PRESETS.seo : PRESETS.central;
+      const def = PRESETS.seo;
       map.setView([def.lat, def.lng], def.zoom);
       invalidateMapSoon();
     }
@@ -1819,7 +1819,7 @@
       writeLS(LS.pricesOnly, "0");
     refreshPricesOnlyLabel();
 
-    const savedRegion = readLS(LS.region, "central");
+    const savedRegion = readLS(LS.region, "seo");
     if (els.regionSelect) {
       els.regionSelect.value =
         savedRegion && PRESETS[savedRegion] ? savedRegion : "central";
@@ -1862,8 +1862,8 @@
     if (els.refreshBtn) {
       els.refreshBtn.addEventListener("click", async () => {
         const c = map.getCenter();
-        const regionKey = readLS(LS.region, "central");
-        const preset = PRESETS[regionKey] || PRESETS.central;
+        const regionKey = readLS(LS.region, "seo");
+        const preset = PRESETS[regionKey] || PRESETS.seo;
         try {
           await runSearchPresetOrRefresh({ lat: c.lat, lng: c.lng }, preset);
           // Extra settle after first load/render
@@ -1898,8 +1898,8 @@
 
         // Refetch immediately (same behaviour as hitting Refresh)
         const c = map.getCenter();
-        const regionKey = readLS(LS.region, "central");
-        const preset = PRESETS[regionKey] || PRESETS.central;
+        const regionKey = readLS(LS.region, "seo");
+        const preset = PRESETS[regionKey] || PRESETS.seo;
         try {
           await runSearchPresetOrRefresh({ lat: c.lat, lng: c.lng }, preset);
         } catch (err) {
@@ -1923,8 +1923,8 @@
     // Initial search
     // Initial search
     // Initial search
-    const regionKey = readLS(LS.region, "central");
-    const preset = PRESETS[regionKey] || PRESETS.central;
+    const regionKey = readLS(LS.region, "seo");
+    const preset = PRESETS[regionKey] || PRESETS.seo;
 
       try {
         const hasSharedMapState = applySharedMapStateFromUrl();
