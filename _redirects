@@ -1,6 +1,15 @@
-/data/*      /data/:splat   200
-/*.json      /:splat        200
+# Data routes (unchanged)
+/data/*              /data/:splat         200
+/*.json              /:splat              200
 
-/station     /              301
-/station/    /              301
-/fuel/*      /index.html    200
+# Station base paths (unchanged)
+/station             /                    301
+/station/            /                    301
+
+# Kill non-existent fuel parent pages (IMPORTANT FIX)
+/fuel/petrol/        /404.html            404
+/fuel/diesel/        /404.html            404
+/fuel/               /404.html            404
+
+# Main fuel routing (keep this last)
+/fuel/*              /index.html          200
