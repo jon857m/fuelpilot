@@ -6,4 +6,7 @@
   <sitemap>
     <loc>https://fuelpilot.co.uk/sitemap-stations.xml</loc>
   </sitemap>
+  <sitemap>
+    <loc>https://fuelpilot.co.uk/sitemap-static.xml</loc>
+  </sitemap>
 </sitemapindex>
