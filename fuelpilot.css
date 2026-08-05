@@ -1114,6 +1114,43 @@ body.fp-embedded .fp-app {
   font-size: 13px;
 }
 
+.fp-menu-links{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  margin-bottom:10px;
+}
+
+.fp-menu-link{
+  display:block;
+  padding:7px 9px;
+
+  color:rgba(255,255,255,.88);
+  text-decoration:none;
+
+  font-size:13px;
+  font-weight:650;
+  line-height:1.2;
+
+  border-radius:9px;
+}
+
+.fp-menu-link:hover{
+  color:#ffffff;
+  background:rgba(255,255,255,.08);
+}
+
+.fp-menu-link:active{
+  background:rgba(255,255,255,.12);
+}
+
+.fp-menu-divider{
+  height:1px;
+  margin:0 0 10px;
+
+  background:rgba(255,255,255,.10);
+}
+
 /* Anchor legend to the controls card corner */
 .fp-legend {
   top: calc(env(safe-area-inset-top, 0px) + 62px);
